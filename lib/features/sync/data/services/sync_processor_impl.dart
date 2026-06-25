@@ -71,9 +71,21 @@ class SyncProcessorImpl implements SyncProcessor {
       case 'acta':
         await _procesarActa(item);
         break;
+      case 'veedor_jrv':
+        await _procesarVeedorJrv(item);
+        break;
       default:
         throw Exception('Tipo de entidad desconocido: ${item.entityType}');
     }
+  }
+
+  Future<void> _procesarVeedorJrv(SyncQueueData item) async {
+    final payload = jsonDecode(item.payload) as Map<String, dynamic>;
+    await _remote.asignarVeedorAJrv(
+      veedorId: payload['veedorId'] as String,
+      jrvId: payload['jrvId'] as String,
+      recintoId: payload['recintoId'] as String,
+    );
   }
 
   Future<void> _procesarActa(SyncQueueData item) async {

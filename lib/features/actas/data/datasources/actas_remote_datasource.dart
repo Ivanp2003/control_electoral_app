@@ -1,4 +1,3 @@
-import 'dart:convert';
 import 'package:appwrite/appwrite.dart';
 import 'package:uuid/uuid.dart';
 import '../../../../core/constants/appwrite_config.dart';
@@ -75,6 +74,23 @@ class ActasRemoteDatasource {
       bucketId: AppwriteConfig.bucketEvidenciaFotografica,
       fileId: actaId,
       file: InputFile.fromPath(path: filePath),
+    );
+  }
+
+  Future<void> asignarVeedorAJrv({
+    required String veedorId,
+    required String jrvId,
+    required String recintoId,
+  }) async {
+    await _databases.createDocument(
+      databaseId: AppwriteConfig.databaseId,
+      collectionId: AppwriteConfig.collectionVeedorJrv,
+      documentId: '${veedorId}_$jrvId',
+      data: {
+        'veedorId': veedorId,
+        'jrvId': jrvId,
+        'recintoId': recintoId,
+      },
     );
   }
 }

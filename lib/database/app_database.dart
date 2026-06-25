@@ -288,6 +288,9 @@ class AppDatabase extends _$AppDatabase {
   // CRUD — RecintosLocal (Fase 3)
   // ---------------------------------------------------------------------------
 
+  Future<List<RecintosLocalData>> obtenerTodasLasRecintos() =>
+      select(recintosLocal).get();
+
   Future<List<RecintosLocalData>> obtenerRecintosLocal(String parroquiaId) =>
       (select(recintosLocal)
             ..where((t) => t.parroquiaId.equals(parroquiaId)))
@@ -299,6 +302,8 @@ class AppDatabase extends _$AppDatabase {
   // ---------------------------------------------------------------------------
   // CRUD — JrvLocal (Fase 3)
   // ---------------------------------------------------------------------------
+
+  Future<List<JrvLocalData>> obtenerTodasLasJrv() => select(jrvLocal).get();
 
   Future<List<JrvLocalData>> obtenerJrvLocal(String recintoId) =>
       (select(jrvLocal)..where((t) => t.recintoId.equals(recintoId))).get();
@@ -336,6 +341,9 @@ class AppDatabase extends _$AppDatabase {
   // ---------------------------------------------------------------------------
   // CRUD — ActaDetalleLocal (Fase 4)
   // ---------------------------------------------------------------------------
+
+  Future<List<ActaDetalleLocalData>> obtenerTodosLosDetalles() =>
+      select(actaDetalleLocal).get();
 
   Future<List<ActaDetalleLocalData>> obtenerDetallePorActa(String actaId) =>
       (select(actaDetalleLocal)

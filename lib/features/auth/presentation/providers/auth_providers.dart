@@ -20,6 +20,10 @@ import '../../../seeder/presentation/seeder_screen.dart';
 import '../../../actas/presentation/screens/registrar_acta_screen.dart';
 import '../../../actas/presentation/screens/mis_actas_screen.dart';
 import '../../../sync/presentation/widgets/sync_indicator.dart';
+import '../../../avance/presentation/screens/avance_electoral_screen.dart';
+import '../../../usuarios/presentation/screens/asignar_coordinador_screen.dart';
+import '../../../usuarios/presentation/screens/asignar_veedores_screen.dart';
+import '../../../usuarios/presentation/screens/crear_usuario_screen.dart';
 import 'auth_state.dart';
 
 part 'auth_providers.g.dart';
@@ -206,6 +210,24 @@ GoRouter goRouter(GoRouterRef ref) {
         path: '/actas/mis-actas',
         builder: (context, state) => const MisActasScreen(),
       ),
+      GoRoute(
+        path: '/actas/asignar-veedores',
+        builder: (context, state) => const AsignarVeedoresScreen(),
+      ),
+      // ── Fase 5/6: Avance Electoral ──────────────────────────────────
+      GoRoute(
+        path: '/avance',
+        builder: (context, state) => const AvanceElectoralScreen(),
+      ),
+      // ── Gap: Usuarios ────────────────────────────────────────────────
+      GoRoute(
+        path: '/usuarios/crear',
+        builder: (context, state) => const CrearUsuarioScreen(),
+      ),
+      GoRoute(
+        path: '/usuarios/asignar-coordinador',
+        builder: (context, state) => const AsignarCoordinadorScreen(),
+      ),
     ],
     redirect: (context, state) {
       final isLoggedIn = authState.maybeWhen(
@@ -241,14 +263,32 @@ GoRouter goRouter(GoRouterRef ref) {
         return '/home';
       }
 
-      // 4. Guard de rol: /recintos/crear y /seeder solo para Coordinador Provincial.
+      // 4. Guard de rol: pantallas solo para Coordinador Provincial.
       final esCoordinadorProvincial = authState.maybeWhen(
         authenticated: (user) =>
             user.rol == AppRole.coordinadorProvincial,
         orElse: () => false,
       );
-      if ((matchedPath == '/recintos/crear' || matchedPath == '/seeder') &&
-          !esCoordinadorProvincial) {
+      final esCoordinadorRecinto = authState.maybeWhen(
+        authenticated: (user) =>
+            user.rol == AppRole.coordinadorRecinto,
+        orElse: () => false,
+      );
+      final pathsProvincial = [
+        '/recintos/crear', '/seeder',
+        '/avance', '/usuarios/asignar-coordinador',
+      ];
+      if (pathsProvincial.contains(matchedPath) && !esCoordinadorProvincial) {
+        return '/home';
+      }
+      // /usuarios/crear: coordProvincial puede crear cualquiera, coordRecinto solo veedores.
+      if (matchedPath == '/usuarios/crear' &&
+          !esCoordinadorProvincial &&
+          !esCoordinadorRecinto) {
+        return '/home';
+      }
+      // /actas/asignar-veedores: solo coordRecinto.
+      if (matchedPath == '/actas/asignar-veedores' && !esCoordinadorRecinto) {
         return '/home';
       }
 
@@ -388,6 +428,23 @@ class _HomeScreen extends ConsumerWidget {
                 onTap: () => context.go('/actas/mis-actas'),
               ),
             ],
+            // Coordinador de Recinto — gestión de veedores
+            if (usuario?.rol == AppRole.coordinadorRecinto) ...[
+              if (AppPermissions.puedeCrearVeedores(usuario!.rol))
+                _NavCard(
+                  icon: Icons.person_add_outlined,
+                  label: 'Crear Veedor',
+                  subtitle: 'Registrar nuevo veedor en el sistema',
+                  onTap: () => context.go('/usuarios/crear'),
+                ),
+              if (AppPermissions.puedeAsignarVeedores(usuario.rol))
+                _NavCard(
+                  icon: Icons.people_outline,
+                  label: 'Asignar Veedores a JRV',
+                  subtitle: 'Vincular veedores con sus mesas',
+                  onTap: () => context.go('/actas/asignar-veedores'),
+                ),
+            ],
             // Solo Coordinador Provincial
             if (usuario?.rol == AppRole.coordinadorProvincial) ...[
               _NavCard(
@@ -402,6 +459,26 @@ class _HomeScreen extends ConsumerWidget {
                 subtitle: 'Seeder de jerarquía geográfica',
                 accentColor: Colors.amber,
                 onTap: () => context.go('/seeder'),
+              ),
+              if (AppPermissions.puedeConsultarAvance(usuario!.rol))
+                _NavCard(
+                  icon: Icons.pie_chart_outline,
+                  label: 'Avance Electoral',
+                  subtitle: 'Progreso y coordenadas GPS',
+                  onTap: () => context.go('/avance'),
+                ),
+              if (AppPermissions.puedeAsignarVeedores(usuario.rol))
+                _NavCard(
+                  icon: Icons.people_outline,
+                  label: 'Asignar Coordinador de Recinto',
+                  subtitle: 'Vincular un coordinador a un recinto',
+                  onTap: () => context.go('/usuarios/asignar-coordinador'),
+                ),
+              _NavCard(
+                icon: Icons.person_add_outlined,
+                label: 'Crear Usuario',
+                subtitle: 'Registrar veedores y coordinadores',
+                onTap: () => context.go('/usuarios/crear'),
               ),
             ],
           ],

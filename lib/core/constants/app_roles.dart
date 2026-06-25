@@ -45,9 +45,15 @@ class AppPermissions {
   static bool puedeCrearCoordinadoresRecinto(AppRole role) =>
       role == AppRole.coordinadorProvincial;
 
-  /// Permite ver el avance global del proceso electoral y las coordenadas GPS de las actas.
-  /// [RESTAURADO Fase 3] — era un único método en Fase 1; se había dividido
-  /// incorrectamente en canViewAvanceGlobal + canViewGpsGlobal.
+  /// Permite ver el avance global del proceso electoral.
+  static bool puedeConsultarAvance(AppRole role) =>
+      role == AppRole.coordinadorProvincial;
+
+  /// Permite consultar las coordenadas GPS de las actas registradas.
+  static bool puedeConsultarCoordenadas(AppRole role) =>
+      role == AppRole.coordinadorProvincial;
+
+  /// [Compatibilidad] Versión compuesta de los dos permisos anteriores.
   static bool puedeVerAvanceGlobalYGps(AppRole role) =>
       role == AppRole.coordinadorProvincial;
 
@@ -59,6 +65,10 @@ class AppPermissions {
   /// [RESTAURADO Fase 3] — estaba fusionado con puedeReasignarVeedores
   /// en el método canManageVeedores; aquí se restaura la granularidad original.
   static bool puedeCrearVeedores(AppRole role) =>
+      role == AppRole.coordinadorRecinto;
+
+  /// Permite asignar veedores a JRV.
+  static bool puedeAsignarVeedores(AppRole role) =>
       role == AppRole.coordinadorRecinto;
 
   /// Permite reasignar veedores entre JRV dentro de su recinto.
