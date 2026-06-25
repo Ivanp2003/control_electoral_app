@@ -1,0 +1,67 @@
+{
+  "provincia": "Pichincha",
+  "canton": "Quito",
+  "parroquias": [
+    "Calderón",
+    "Carcelén",
+    "Conocoto",
+    "Tumbaco"
+  ],
+  "recintos": [
+    {
+      "nombre": "Unidad Educativa Calderón",
+      "parroquia": "Calderón",
+      "direccion": "Av. Interoceánica y Calle J, Calderón"
+    },
+    {
+      "nombre": "Colegio Nacional Calderón",
+      "parroquia": "Calderón",
+      "direccion": "Calle Cajabamba N45-120, Calderón"
+    },
+    {
+      "nombre": "Escuela Fiscal Carcelén",
+      "parroquia": "Carcelén",
+      "direccion": "Av. La Prensa N80-450, Carcelén"
+    },
+    {
+      "nombre": "Unidad Educativa Bicentenario",
+      "parroquia": "Carcelén",
+      "direccion": "Calle Los Álamos y Eucaliptos, Carcelén"
+    },
+    {
+      "nombre": "Colegio Conocoto",
+      "parroquia": "Conocoto",
+      "direccion": "Av. General Enríquez y Calle S, Conocoto"
+    },
+    {
+      "nombre": "Unidad Educativa del Valle",
+      "parroquia": "Conocoto",
+      "direccion": "Calle Padre Luis Sodiro N12-78, Conocoto"
+    },
+    {
+      "nombre": "Escuela Juan Montalvo",
+      "parroquia": "Tumbaco",
+      "direccion": "Av. Oswaldo Guayasamín N3-134, Tumbaco"
+    },
+    {
+      "nombre": "Unidad Educativa Tumbaco",
+      "parroquia": "Tumbaco",
+      "direccion": "Calle Chimborazo y Tungurahua, Tumbaco"
+    }
+  ],
+  "jrv_por_recinto": 3,
+  "organizaciones_alcalde": [
+    "ADN Ecuador",
+    "RC5 Revolución Ciudadana",
+    "PSC Partido Social Cristiano",
+    "Construye",
+    "SUMA Sociedad Unida Más Acción"
+  ],
+  "organizaciones_prefecto": [
+    "ADN Ecuador",
+    "RC5 Revolución Ciudadana",
+    "PSC Partido Social Cristiano",
+    "Construye",
+    "SUMA Sociedad Unida Más Acción"
+  ]
+}
