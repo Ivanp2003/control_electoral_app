@@ -16,6 +16,10 @@ part 'app_database.g.dart';
 ///   v1 — Fase 1: ActasLocal, SyncQueue.
 ///   v2 — Fase 3: ProvinciasLocal, CantonesLocal, ParroquiasLocal, RecintosLocal,
 ///                JrvLocal, OrganizacionesLocal, ConfigSistemaLocal.
+///   v3 — Fase 4: ActaDetalleLocal, VeedorJrvLocal.
+///       (Nota: estas tablas se filtraron prematuramente durante la
+///       corrección de Fase 3 y se formalizan aquí en Fase 4 sin
+///       cambios de esquema adicionales).
 
 // =============================================================================
 // TABLAS — Fase 1
@@ -134,7 +138,7 @@ class ConfigSistemaLocal extends Table {
 }
 
 // =============================================================================
-// TABLAS — Fase 4: Actas y Asignación Veedor↔JRV
+// TABLAS — Fase 4
 // =============================================================================
 
 /// Detalle de votos por organización política dentro de un acta.
@@ -149,7 +153,7 @@ class ActaDetalleLocal extends Table {
   Set<Column> get primaryKey => {id};
 }
 
-/// Asignación de veedores a JRV específicas.
+/// Asignación de veedores a JRV y recintos.
 class VeedorJrvLocal extends Table {
   TextColumn get id => text()();
   TextColumn get veedorId => text()();
@@ -199,14 +203,8 @@ class AppDatabase extends _$AppDatabase {
           await migrator.createTable(organizacionesLocal);
           await migrator.createTable(configSistemaLocal);
         }
-        // v2 → v3: Agregar columnas a ActasLocal y nuevas tablas de Fase 4.
+        // v2 → v3: Agregar tablas de Fase 4.
         if (from < 3) {
-          await migrator.database.customStatement(
-              'ALTER TABLE actas_local ADD COLUMN creado_por TEXT NOT NULL DEFAULT \'\'');
-          await migrator.database.customStatement(
-              'ALTER TABLE actas_local ADD COLUMN editado_por TEXT');
-          await migrator.database.customStatement(
-              'ALTER TABLE actas_local ADD COLUMN fecha_edicion TEXT');
           await migrator.createTable(actaDetalleLocal);
           await migrator.createTable(veedorJrvLocal);
         }

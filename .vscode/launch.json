@@ -1,0 +1,16 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "Control Electoral App",
+      "request": "launch",
+      "type": "dart",
+      "program": "lib/main.dart",
+      "args": [
+        "--dart-define", "APPWRITE_ENDPOINT=https://nyc.cloud.appwrite.io/v1",
+        "--dart-define", "APPWRITE_PROJECT_ID=6a3dd199003669dd17a9",
+        "--dart-define", "APPWRITE_DATABASE_ID=6a3dd1c60033fb7bdccd"
+      ]
+    }
+  ]
+}

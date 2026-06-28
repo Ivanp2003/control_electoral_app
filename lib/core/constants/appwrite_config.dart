@@ -15,19 +15,22 @@ class AppwriteConfig {
   /// Endpoint de Appwrite cargado desde variables de compilación.
   static const String endpoint = String.fromEnvironment(
     'APPWRITE_ENDPOINT',
-    defaultValue: '',
+    defaultValue: 'https://nyc.cloud.appwrite.io/v1',
   );
 
   /// ID del proyecto de Appwrite cargado desde variables de compilación.
   static const String projectId = String.fromEnvironment(
     'APPWRITE_PROJECT_ID',
-    defaultValue: '',
+    defaultValue: '6a3dd199003669dd17a9',
   );
 
   // --- Database Configuration ---
   
   /// ID único de la Base de Datos electoral en Appwrite.
-  static const String databaseId = 'control_electoral_db';
+  static const String databaseId = String.fromEnvironment(
+    'APPWRITE_DATABASE_ID',
+    defaultValue: '6a3dd1c60033fb7bdccd',
+  );
 
   // --- Collection IDs ---
   

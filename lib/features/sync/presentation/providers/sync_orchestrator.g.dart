@@ -59,7 +59,7 @@ final syncProcessorProvider = Provider<SyncProcessor>.internal(
 @Deprecated('Will be removed in 3.0. Use Ref instead')
 // ignore: unused_element
 typedef SyncProcessorRef = ProviderRef<SyncProcessor>;
-String _$syncOrchestratorHash() => r'0092a360b65cfdd920001e2a057fc36a513d2912';
+String _$syncOrchestratorHash() => r'516a15f3fd7a3ae1d2ecf5c70795c00f50b1a0f1';
 
 /// See also [SyncOrchestrator].
 @ProviderFor(SyncOrchestrator)

@@ -81,15 +81,17 @@ Para asegurar el funcionamiento correcto de la autenticación de la Fase 2, apli
    - **Correo**: Key `correo`, Type `unique`, Attribute `correo`.
 
 ### B. Cloud Function: `buscar_correo_por_cedula`
-1. Cree una Cloud Function con el ID `buscar_correo_por_cedula`.
+1. Cree una Cloud Function con el ID `buscar_correo_por_cedula` (ver código en `appwrite/functions/buscar_correo_por_cedula`).
 2. Habilite permisos de ejecución pública para **`any`** (Guests), de modo que usuarios no autenticados puedan invocarla en el Login.
 3. Configure la variable de entorno `APPWRITE_API_KEY` con permisos de lectura de la base de datos.
-4. La función recibirá la cédula `{"cedula": "..."}` y debe retornar `{"correo": "correo@dominio.com"}` o `{"error": "not_found"}` si no existe.
+4. La función validará primero que la cédula cumpla el formato de 10 dígitos (Módulo 10) antes de consultar la base de datos, mitigando peticiones malformadas.
+5. **TODO (Hardening - Rate Limiting)**: Actualmente esta función carece de un *rate-limit* real por IP, lo que abre una ventana a ataques de enumeración masiva de cédulas válidas. Como limitación conocida, en un entorno de producción se debe implementar limitación por IP a nivel de infraestructura o mediante una colección de control de accesos en Appwrite.
 
 ### C. Cloud Function: `crear_usuario`
-1. Cree una Cloud Function con el ID `crear_usuario`.
+1. Cree una Cloud Function con el ID `crear_usuario` (ver código en `appwrite/functions/crear_usuario`).
 2. Configure los permisos de ejecución para **`users`** (únicamente usuarios registrados y coordinadores).
-3. La función debe validar que la cédula y correo no existan previamente y registrar la cuenta en Appwrite Auth (`users.create`) vinculándola con su respectivo documento de la colección `usuarios`.
+3. La función debe validar que la cédula y correo no existan previamente y registrar la cuenta en Appwrite Auth (`users.create`) vinculándola con su respectivo documento de la colección `usuarios`. Atrapa errores de duplicidad de Appwrite Auth como mecanismo de seguridad adicional contra *race conditions*.
+4. Despliegue las funciones desde la CLI: reemplace `TU_PROJECT_ID` y `TU_ENDPOINT` en `appwrite/appwrite.json` con los valores de su instancia localmente y ejecute `appwrite deploy function`. Nunca haga commit de sus credenciales reales en `appwrite.json`.
 
 ---
 
@@ -104,19 +106,31 @@ Dado que los seeders automáticos se inyectan en la Fase 3, cree el primer usuar
 
 2. **Crear Perfil en Base de Datos**:
    - Vaya a **Database -> control_electoral_db -> usuarios** y haga clic en **Add Document**.
-   - En **Document ID**, pegue exactamente el ID de usuario copiado en el paso anterior.
-   - Rellene los campos:
-     - `cedula`: Una cédula válida de 10 dígitos (ej: `1710034065`).
+   - **IMPORTANTE**: En **Document ID**, pegue exactamente el ID de usuario copiado en el paso anterior. No deje que se autogenere.
+   - Rellene los campos obligatorios para asegurar que el Login no falle:
+     - `cedula`: Una cédula válida de 10 dígitos que pase el algoritmo de validación oficial (Módulo 10).
      - `nombres`: Juan Carlos
      - `apellidos`: Pérez Andrade
      - `telefono`: 0999999999
      - `correo`: `provincial@control-electoral.gob.ec`
      - `rol`: `coordinadorProvincial`
-     - `passwordChanged`: `false` (lo que le obligará a actualizar su contraseña al ingresar).
+     - `passwordChanged`: `false` (Booleano explícito. Requerido para probar el flujo de forzado de cambio de contraseña en el primer login).
+
+3. **Ejecutar el Seeder (Carga Inicial)**:
+   - Compile la app con las variables de entorno (`--dart-define`).
+   - Inicie sesión con la cédula del usuario Bootstrap y la clave `Ecuador2026`.
+   - El sistema le forzará a cambiar la contraseña.
+   - Una vez dentro, navegue manualmente a la pantalla del Seeder (acceso exclusivo para Coordinador Provincial) y presione "Cargar datos iniciales". El seeder **no** se ejecuta automáticamente al iniciar sesión.
 
 ---
 
-## 6. Checklist de Avance del Proyecto
+## 6. Notas de Implementación Históricas
+
+* **Esquema Local (Fase 3/4)**: Las tablas `ActaDetalleLocal` y `VeedorJrvLocal` se crearon prematuramente en el código durante el desarrollo inicial de la Fase 3 por un error de proceso (leakage). Fueron formalizadas en la Fase 4 como la versión 3 de la base de datos (`schemaVersion = 3`) sin necesidad de revertir y recrear la migración, manteniendo la estabilidad del esquema en producción.
+
+---
+
+## 7. Checklist de Avance del Proyecto
 
 * [x] **Fase 1: Base Estructural**
 * [x] **Fase 2: Auth y Roles**

@@ -1,5 +1,6 @@
 import 'package:appwrite/appwrite.dart';
 import 'package:dartz/dartz.dart';
+import 'package:flutter/foundation.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 import '../../../../core/errors/failures.dart';
 import '../../../../core/network/connectivity_service.dart';
@@ -48,14 +49,16 @@ class AuthRepositoryImpl implements AuthRepository {
       final userModel = await _remoteDatasource.obtenerUsuarioActual();
       return Right(userModel.toDomain());
     } on UsuarioNoEncontradoException {
+      debugPrint('=== LOGIN FAILED: UsuarioNoEncontradoException ===');
       return const Left(AuthCredentialsFailure());
     } on AppwriteException catch (e) {
-      // Mapear errores de credenciales inválidas (400, 401, etc.)
+      debugPrint('=== LOGIN FAILED: AppwriteException ${e.code} ${e.message} ===');
       if (e.code == 401 || e.code == 400) {
         return const Left(AuthCredentialsFailure());
       }
       return Left(ServerFailure(e.message ?? 'Error de autenticación en Appwrite.'));
     } catch (e) {
+      debugPrint('=== LOGIN FAILED: General Exception $e ===');
       return Left(ServerFailure(e.toString()));
     }
   }

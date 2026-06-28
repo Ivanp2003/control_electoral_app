@@ -37,14 +37,17 @@ class OrganizacionesRepositoryImpl implements OrganizacionesRepository {
     if (online) {
       try {
         final orgs = await _remote.obtenerOrganizaciones(cargo);
-        // Actualizar caché local.
-        for (final org in orgs) {
-          await _db.guardarOrganizacionLocal(OrganizacionesLocalCompanion.insert(
-            id: org.id,
-            nombre: org.nombre,
-            cargo: org.cargo,
-          ));
-        }
+        // Actualizar caché local de forma transaccional.
+        await _db.transaction(() async {
+          await (_db.delete(_db.organizacionesLocal)..where((t) => t.cargo.equals(cargo))).go();
+          for (final org in orgs) {
+            await _db.guardarOrganizacionLocal(OrganizacionesLocalCompanion.insert(
+              id: org.id,
+              nombre: org.nombre,
+              cargo: org.cargo,
+            ));
+          }
+        });
         return Right(orgs);
       } catch (e) {
         return _fallback(cargo);

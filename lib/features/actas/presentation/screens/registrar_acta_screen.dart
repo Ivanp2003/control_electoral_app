@@ -403,9 +403,9 @@ class _RegistrarActaScreenState extends ConsumerState<RegistrarActaScreen> {
 
   Widget _PasoResumen() {
     final votos = _organizaciones
-        .map((org) => VotoInput(
+        .map((org) => OrganizacionConVotos(
               organizacionId: org.id,
-              nombreOrganizacion: org.nombre,
+              nombre: org.nombre,
               votos: int.tryParse(
                       _votosControllers[org.id]?.text ?? '') ??
                   0,
@@ -510,49 +510,60 @@ class _RegistrarActaScreenState extends ConsumerState<RegistrarActaScreen> {
   Future<void> _guardarActa() async {
     setState(() => _guardando = true);
 
-    final votos = _organizaciones
-        .map((org) => VotoInput(
+    final organizacionesConVotos = _organizaciones
+        .map((org) => OrganizacionConVotos(
               organizacionId: org.id,
-              nombreOrganizacion: org.nombre,
+              nombre: org.nombre,
               votos: int.tryParse(
                       _votosControllers[org.id]?.text ?? '') ??
                   0,
             ))
         .toList();
+
     final blancos = int.tryParse(_blancosCtrl.text) ?? 0;
     final nulos = int.tryParse(_nulosCtrl.text) ?? 0;
     final total = int.tryParse(_totalCtrl.text) ?? 0;
 
-    final error = await ref
-        .read(actaRegistroNotifierProvider.notifier)
-        .registrar(
-          jrvId: _jrvSeleccionado!.id,
-          cargoElectoral: _cargoSeleccionado,
-          votosOrganizaciones: votos,
-          votosBlancos: blancos,
-          votosNulos: nulos,
-          totalSufragantes: total,
-          organizaciones: _organizaciones,
-          evidencia: _evidencia,
-        );
+    final usuario = ref.read(currentUserProvider)!;
+
+    final acta = Acta(
+      id: '${_jrvSeleccionado!.id}_$_cargoSeleccionado',
+      jrvId: _jrvSeleccionado!.id,
+      cargoElectoral: _cargoSeleccionado,
+      totalSufragantes: total,
+      votosBlancos: blancos,
+      votosNulos: nulos,
+      organizaciones: organizacionesConVotos,
+      evidenciaFoto: _evidencia?.fotoPath,
+      latitud: _evidencia?.latitud ?? 0.0,
+      longitud: _evidencia?.longitud ?? 0.0,
+      creadoPor: usuario.id,
+      synced: false,
+    );
+
+    final registrar = ref.read(registrarActaUseCaseProvider);
+    final result = await registrar(acta, usuario);
 
     setState(() => _guardando = false);
 
-    if (error == null) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-              content: Text('Acta registrada exitosamente'),
-              backgroundColor: Colors.greenAccent),
-        );
-        Navigator.pop(context);
-      }
-    } else {
-      if (mounted) {
-        setState(() => _error = error);
-        _paso = _PasoRegistro.llenarDatos;
-      }
-    }
+    result.fold(
+      (failure) {
+        if (mounted) {
+          setState(() => _error = failure.message);
+          _paso = _PasoRegistro.llenarDatos;
+        }
+      },
+      (_) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+                content: Text('Acta registrada exitosamente'),
+                backgroundColor: Colors.greenAccent),
+          );
+          Navigator.pop(context);
+        }
+      },
+    );
   }
 }
 

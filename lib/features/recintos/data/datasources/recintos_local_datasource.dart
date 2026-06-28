@@ -90,47 +90,75 @@ class RecintosLocalDatasourceImpl implements RecintosLocalDatasource {
 
   @override
   Future<void> guardarProvincias(List<ProvinciaModel> provincias) async {
-    for (final p in provincias) {
-      await _db.guardarProvinciaLocal(
-          ProvinciasLocalCompanion.insert(id: p.id, nombre: p.nombre));
-    }
+    await _db.transaction(() async {
+      await _db.limpiarProvinciasLocal();
+      for (final p in provincias) {
+        await _db.guardarProvinciaLocal(
+            ProvinciasLocalCompanion.insert(id: p.id, nombre: p.nombre));
+      }
+    });
   }
 
   @override
   Future<void> guardarCantones(List<CantonModel> cantones) async {
-    for (final c in cantones) {
-      await _db.guardarCantonLocal(CantonesLocalCompanion.insert(
-          id: c.id, nombre: c.nombre, provinciaId: c.provinciaId));
-    }
+    await _db.transaction(() async {
+      // Borrar antiguos si hay data nueva (idealmente por provincia, pero asumiendo sync full)
+      if (cantones.isNotEmpty) {
+         final provId = cantones.first.provinciaId;
+         await (_db.delete(_db.cantonesLocal)..where((t) => t.provinciaId.equals(provId))).go();
+      }
+      for (final c in cantones) {
+        await _db.guardarCantonLocal(CantonesLocalCompanion.insert(
+            id: c.id, nombre: c.nombre, provinciaId: c.provinciaId));
+      }
+    });
   }
 
   @override
   Future<void> guardarParroquias(List<ParroquiaModel> parroquias) async {
-    for (final p in parroquias) {
-      await _db.guardarParroquiaLocal(ParroquiasLocalCompanion.insert(
-          id: p.id, nombre: p.nombre, cantonId: p.cantonId));
-    }
+    await _db.transaction(() async {
+      if (parroquias.isNotEmpty) {
+         final canId = parroquias.first.cantonId;
+         await (_db.delete(_db.parroquiasLocal)..where((t) => t.cantonId.equals(canId))).go();
+      }
+      for (final p in parroquias) {
+        await _db.guardarParroquiaLocal(ParroquiasLocalCompanion.insert(
+            id: p.id, nombre: p.nombre, cantonId: p.cantonId));
+      }
+    });
   }
 
   @override
   Future<void> guardarRecintos(List<RecintoModel> recintos) async {
-    for (final r in recintos) {
-      await _db.guardarRecintoLocal(RecintosLocalCompanion.insert(
-        id: r.id,
-        nombre: r.nombre,
-        parroquiaId: r.parroquiaId,
-        direccion: r.direccion,
-        latRef: Value(r.latRef),
-        lonRef: Value(r.lonRef),
-      ));
-    }
+    await _db.transaction(() async {
+      if (recintos.isNotEmpty) {
+         final parrId = recintos.first.parroquiaId;
+         await (_db.delete(_db.recintosLocal)..where((t) => t.parroquiaId.equals(parrId))).go();
+      }
+      for (final r in recintos) {
+        await _db.guardarRecintoLocal(RecintosLocalCompanion.insert(
+          id: r.id,
+          nombre: r.nombre,
+          parroquiaId: r.parroquiaId,
+          direccion: r.direccion,
+          latRef: Value(r.latRef),
+          lonRef: Value(r.lonRef),
+        ));
+      }
+    });
   }
 
   @override
   Future<void> guardarJrv(List<JrvModel> jrvList) async {
-    for (final j in jrvList) {
-      await _db.guardarJrvLocal(
-          JrvLocalCompanion.insert(id: j.id, codigo: j.codigo, recintoId: j.recintoId));
-    }
+    await _db.transaction(() async {
+      if (jrvList.isNotEmpty) {
+         final recId = jrvList.first.recintoId;
+         await (_db.delete(_db.jrvLocal)..where((t) => t.recintoId.equals(recId))).go();
+      }
+      for (final j in jrvList) {
+        await _db.guardarJrvLocal(
+            JrvLocalCompanion.insert(id: j.id, codigo: j.codigo, recintoId: j.recintoId));
+      }
+    });
   }
 }

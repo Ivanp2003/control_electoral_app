@@ -1,0 +1,56 @@
+{
+    "organizationId": "6a16823e0016f5d47f3e",
+    "projectId": "6a3dd199003669dd17a9",
+    "projectName": "controlElectoral",
+    "endpoint": "https://nyc.cloud.appwrite.io/v1",
+    "functions": [
+        {
+            "$id": "6a3df55e0012af07bdbd",
+            "name": "crear_usuario",
+            "runtime": "node-25",
+            "path": "functions/crear_usuario",
+            "entrypoint": "src/index.js",
+            "execute": [
+                "users"
+            ],
+            "enabled": true,
+            "logging": true,
+            "events": [],
+            "schedule": "",
+            "timeout": 15,
+            "commands": "npm install",
+            "scopes": [
+                "users.read"
+            ],
+            "buildSpecification": "s-2vcpu-2gb",
+            "runtimeSpecification": "s-0.5vcpu-512mb",
+            "deploymentRetention": 0
+        },
+        {
+            "$id": "6a3df467001b21f449d4",
+            "name": "buscar_correo_por_cedula",
+            "runtime": "node-25",
+            "buildSpecification": "s-2vcpu-2gb",
+            "runtimeSpecification": "s-0.5vcpu-512mb",
+            "execute": [
+                "any"
+            ],
+            "events": [],
+            "scopes": [
+                "users.read"
+            ],
+            "schedule": "",
+            "timeout": 15,
+            "enabled": true,
+            "logging": true,
+            "entrypoint": "src/main.js",
+            "commands": "npm install",
+            "ignore": [
+                "node_modules",
+                ".npm"
+            ],
+            "deploymentRetention": 0,
+            "path": "functions/buscar_correo_por_cedula"
+        }
+    ]
+}

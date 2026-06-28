@@ -25,7 +25,7 @@ final currentUserProvider = Provider<Usuario?>.internal(
 @Deprecated('Will be removed in 3.0. Use Ref instead')
 // ignore: unused_element
 typedef CurrentUserRef = ProviderRef<Usuario?>;
-String _$goRouterHash() => r'aa5009a777cf1625dade4dc0040fe760325f4e5a';
+String _$goRouterHash() => r'ed93b9f19aa77e21265cecf39d29a2fd34f92075';
 
 /// Proveedor centralizado de GoRouter para manejar las pantallas y guards de redirección.
 ///

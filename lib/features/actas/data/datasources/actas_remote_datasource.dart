@@ -1,96 +1,83 @@
+import 'dart:convert';
 import 'package:appwrite/appwrite.dart';
-import 'package:uuid/uuid.dart';
 import '../../../../core/constants/appwrite_config.dart';
-import '../models/acta_model.dart';
+import '../domain/entities/acta.dart';
+
+/// actas_remote_datasource.dart
+///
+/// Responsabilidad Única: Manejar la comunicación con el SDK de Appwrite para la
+/// escritura y lectura de Actas.
 
 class ActasRemoteDatasource {
   final Databases _databases;
-  final Storage _storage;
-  final _uuid = const Uuid();
 
-  ActasRemoteDatasource({
-    required Databases databases,
-    required Storage storage,
-  })  : _databases = databases,
-        _storage = storage;
+  ActasRemoteDatasource(this._databases);
 
-  Future<ActaModel> create(String jrvId, ActaModel acta) async {
-    final docId = _uuid.v4();
-    final payload = acta.toJson();
-    payload.remove('id');
-    payload['jrvId'] = jrvId;
-
+  Future<void> registrarActa(Acta acta) async {
+    // 1. Guardar cabecera del acta
     await _databases.createDocument(
       databaseId: AppwriteConfig.databaseId,
       collectionId: AppwriteConfig.collectionActas,
-      documentId: docId,
-      data: payload,
+      documentId: acta.id,
+      data: {
+        'jrvId': acta.jrvId,
+        'cargoElectoral': acta.cargoElectoral,
+        'votosBlancos': acta.votosBlancos,
+        'votosNulos': acta.votosNulos,
+        'totalSufragantes': acta.totalSufragantes,
+        'evidenciaFoto': acta.evidenciaFoto,
+        'latitud': acta.latitud,
+        'longitud': acta.longitud,
+        'creadoPor': acta.creadoPor,
+        'editadoPor': acta.editadoPor,
+        'fechaEdicion': acta.fechaEdicion?.toIso8601String(),
+      },
+      // Los permisos se inyectarán vía Appwrite Console / Collections default settings.
     );
 
-    return acta;
-  }
-
-  Future<ActaModel> update(String id, ActaModel acta) async {
-    final payload = acta.toJson();
-    payload.remove('id');
-
-    await _databases.updateDocument(
-      databaseId: AppwriteConfig.databaseId,
-      collectionId: AppwriteConfig.collectionActas,
-      documentId: id,
-      data: payload,
-    );
-
-    return acta;
-  }
-
-  Future<ActaModel?> getById(String id) async {
-    try {
-      final response = await _databases.getDocument(
+    // 2. Guardar los detalles (votos de organizaciones)
+    for (final org in acta.organizaciones) {
+      await _databases.createDocument(
         databaseId: AppwriteConfig.databaseId,
-        collectionId: AppwriteConfig.collectionActas,
-        documentId: id,
+        collectionId: AppwriteConfig.collectionActaDetalle,
+        documentId: '${acta.id}_${org.organizacionId}',
+        data: {
+          'actaId': acta.id,
+          'organizacionId': org.organizacionId,
+          'votos': org.votos,
+        },
       );
-      return ActaModel.fromJson(response.data);
-    } catch (_) {
-      return null;
     }
   }
 
-  Future<List<ActaModel>> getByJrv(String jrvId) async {
-    final response = await _databases.listDocuments(
+  Future<void> corregirActa(Acta acta) async {
+    // Actualizar cabecera
+    await _databases.updateDocument(
       databaseId: AppwriteConfig.databaseId,
       collectionId: AppwriteConfig.collectionActas,
-      queries: [Query.equal('jrvId', jrvId)],
-    );
-
-    return response.documents
-        .map((doc) => ActaModel.fromJson(doc.data))
-        .toList();
-  }
-
-  Future<void> uploadFoto(String actaId, String filePath) async {
-    await _storage.createFile(
-      bucketId: AppwriteConfig.bucketEvidenciaFotografica,
-      fileId: actaId,
-      file: InputFile.fromPath(path: filePath),
-    );
-  }
-
-  Future<void> asignarVeedorAJrv({
-    required String veedorId,
-    required String jrvId,
-    required String recintoId,
-  }) async {
-    await _databases.createDocument(
-      databaseId: AppwriteConfig.databaseId,
-      collectionId: AppwriteConfig.collectionVeedorJrv,
-      documentId: '${veedorId}_$jrvId',
+      documentId: acta.id,
       data: {
-        'veedorId': veedorId,
-        'jrvId': jrvId,
-        'recintoId': recintoId,
+        'votosBlancos': acta.votosBlancos,
+        'votosNulos': acta.votosNulos,
+        'totalSufragantes': acta.totalSufragantes,
+        'evidenciaFoto': acta.evidenciaFoto,
+        'latitud': acta.latitud,
+        'longitud': acta.longitud,
+        'editadoPor': acta.editadoPor,
+        'fechaEdicion': acta.fechaEdicion?.toIso8601String(),
       },
     );
+
+    // Actualizar detalles
+    for (final org in acta.organizaciones) {
+      await _databases.updateDocument(
+        databaseId: AppwriteConfig.databaseId,
+        collectionId: AppwriteConfig.collectionActaDetalle,
+        documentId: '${acta.id}_${org.organizacionId}',
+        data: {
+          'votos': org.votos,
+        },
+      );
+    }
   }
 }

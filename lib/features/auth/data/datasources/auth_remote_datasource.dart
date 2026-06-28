@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'package:flutter/foundation.dart';
 import 'package:appwrite/appwrite.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 import '../../../../core/constants/appwrite_config.dart';
@@ -62,29 +63,52 @@ class AuthRemoteDatasourceImpl implements AuthRemoteDatasource {
     // valide correos asociados a cédulas, en una iteración futura se puede cambiar este flujo 
     // para que la función reciba 'cedula' y 'password', realice el login en el servidor y retorne 
     // directamente un token de sesión/JWT al cliente, evitando exponer el correo electrónico.
-    final execution = await _functions.createExecution(
-      functionId: 'buscar_correo_por_cedula',
-      body: jsonEncode({'cedula': cedula}),
-    );
+    try {
+      debugPrint('=== buscarCorreoPorCedula: cedula=$cedula ===');
+      final execution = await _functions.createExecution(
+        functionId: '6a3df467001b21f449d4', // buscar_correo_por_cedula
+        body: jsonEncode({'cedula': cedula}),
+      );
+      
+      debugPrint('=== execution status=${execution.status}, response=${execution.responseBody} ===');
 
-    if (execution.status == 'failed') {
-      throw Exception('Error al ejecutar la función de búsqueda de correo.');
+      if (execution.status == 'failed') {
+        throw Exception('Error al ejecutar la función de búsqueda de correo.');
+      }
+
+      final responseMap = jsonDecode(execution.responseBody) as Map<String, dynamic>;
+      
+      if (responseMap['correo'] != null) {
+        return responseMap['correo'] as String;
+      } else {
+        throw UsuarioNoEncontradoException();
+      }
+    } catch (e) {
+      debugPrint('=== EXCEPCION EN createExecution: $e ===');
+      throw e;
     }
-
-    final responseMap = jsonDecode(execution.responseBody) as Map<String, dynamic>;
-    if (responseMap.containsKey('error') || !responseMap.containsKey('correo')) {
-      throw UsuarioNoEncontradoException();
-    }
-
-    return responseMap['correo'] as String;
   }
 
   @override
   Future<void> crearSesionConEmail(String email, String password) async {
-    await _account.createEmailPasswordSession(
-      email: email,
-      password: password,
-    );
+    try {
+      await _account.createEmailPasswordSession(
+        email: email,
+        password: password,
+      );
+    } on AppwriteException catch (e) {
+      // Si ya hay una sesión activa, Appwrite prohíbe crear otra. 
+      // La cerramos a la fuerza y reintentamos.
+      if (e.message != null && e.message!.contains('session is active')) {
+        await _account.deleteSession(sessionId: 'current');
+        await _account.createEmailPasswordSession(
+          email: email,
+          password: password,
+        );
+      } else {
+        rethrow;
+      }
+    }
   }
 
   @override
@@ -141,7 +165,7 @@ class AuthRemoteDatasourceImpl implements AuthRemoteDatasource {
     required String rol,
   }) async {
     final execution = await _functions.createExecution(
-      functionId: 'crear_usuario',
+      functionId: '6a3df55e0012af07bdbd', // crear_usuario
       body: jsonEncode({
         'cedula': cedula,
         'nombres': nombres,

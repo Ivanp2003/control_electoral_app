@@ -1,90 +1,92 @@
-import 'dart:convert';
 import 'package:drift/drift.dart';
-import 'package:uuid/uuid.dart';
 import '../../../../database/app_database.dart';
-import '../../domain/entities/organizacion_con_votos.dart';
-import '../models/acta_model.dart';
+import '../domain/entities/acta.dart';
+
+/// actas_local_datasource.dart
+///
+/// Responsabilidad Única: Manejar las operaciones de CRUD local de actas usando Drift.
+/// Separa el acta y sus detalles (votos por organización) en las tablas relacionales.
 
 class ActasLocalDatasource {
   final AppDatabase _db;
-  final _uuid = const Uuid();
 
-  ActasLocalDatasource({required AppDatabase db}) : _db = db;
+  ActasLocalDatasource(this._db);
 
-  Future<void> guardarActa(ActaModel acta) async {
-    await _db.guardarActaLocal(ActasLocalCompanion(
-      id: Value(acta.id),
-      jrvId: Value(acta.jrvId),
-      cargoElectoral: Value(acta.cargoElectoral),
-      votosBlancos: Value(acta.votosBlancos),
-      votosNulos: Value(acta.votosNulos),
-      totalSufragantes: Value(acta.totalSufragantes),
-      fotoUrl: Value(acta.fotoUrl),
-      latitud: Value(acta.latitud),
-      longitud: Value(acta.longitud),
-      synced: Value(acta.synced),
-      creadoPor: Value(acta.creadoPor),
-      editadoPor: Value(acta.editadoPor),
-      fechaEdicion: Value(acta.fechaEdicion),
-    ));
-
-    for (final voto in acta.votos) {
-      await _db.guardarDetalleActa(ActaDetalleLocalCompanion(
-        id: Value(_uuid.v4()),
-        actaId: Value(acta.id),
-        organizacionId: Value(voto.organizacionId),
-        nombreOrganizacion: Value(voto.nombreOrganizacion),
-        votos: Value(voto.votos),
-      ));
-    }
-  }
-
-  Future<List<ActaModel>> obtenerActasPorJrv(String jrvId) async {
-    final actas = await _db.obtenerActasPorJrvLocal(jrvId);
-    final result = <ActaModel>[];
-
-    for (final acta in actas) {
-      final detalles = await _db.obtenerDetallePorActa(acta.id);
-      result.add(ActaModel(
+  Future<void> guardarActaLocal(Acta acta) async {
+    await _db.transaction(() async {
+      // 1. Guardar cabecera del acta
+      final actaCompanion = ActasLocalCompanion.insert(
         id: acta.id,
         jrvId: acta.jrvId,
         cargoElectoral: acta.cargoElectoral,
-        votos: detalles
-            .map((d) => OrganizacionConVotos(
-                  organizacionId: d.organizacionId,
-                  nombreOrganizacion: d.nombreOrganizacion,
-                  votos: d.votos,
-                ))
-            .toList(),
         votosBlancos: acta.votosBlancos,
         votosNulos: acta.votosNulos,
         totalSufragantes: acta.totalSufragantes,
-        fotoUrl: acta.fotoUrl,
+        fotoUrl: Value(acta.evidenciaFoto),
         latitud: acta.latitud,
         longitud: acta.longitud,
+        synced: Value(acta.synced),
         creadoPor: acta.creadoPor,
-        editadoPor: acta.editadoPor,
-        fechaEdicion: acta.fechaEdicion,
-        synced: acta.synced,
+        editadoPor: Value(acta.editadoPor),
+        fechaEdicion: Value(acta.fechaEdicion),
+      );
+      
+      await _db.into(_db.actasLocal).insert(actaCompanion, mode: InsertMode.insertOrReplace);
+
+      // 2. Guardar detalles (organizaciones)
+      for (final org in acta.organizaciones) {
+        final detalleCompanion = ActaDetalleLocalCompanion.insert(
+          id: '${acta.id}_${org.organizacionId}',
+          actaId: acta.id,
+          organizacionId: org.organizacionId,
+          nombreOrganizacion: org.nombre,
+          votos: org.votos,
+        );
+        await _db.into(_db.actaDetalleLocal).insert(detalleCompanion, mode: InsertMode.insertOrReplace);
+      }
+    });
+  }
+
+  Future<List<Acta>> obtenerActasPorJrv(String jrvId) async {
+    final actasLocalData = await _db.obtenerActasPorJrvLocal(jrvId);
+    List<Acta> result = [];
+
+    for (final data in actasLocalData) {
+      final detallesData = await (_db.select(_db.actaDetalleLocal)
+            ..where((t) => t.actaId.equals(data.id)))
+          .get();
+
+      final organizaciones = detallesData.map((d) => OrganizacionConVotos(
+        organizacionId: d.organizacionId,
+        nombre: d.nombreOrganizacion,
+        votos: d.votos,
+      )).toList();
+
+      result.add(Acta(
+        id: data.id,
+        jrvId: data.jrvId,
+        cargoElectoral: data.cargoElectoral,
+        totalSufragantes: data.totalSufragantes,
+        votosBlancos: data.votosBlancos,
+        votosNulos: data.votosNulos,
+        organizaciones: organizaciones,
+        evidenciaFoto: data.fotoUrl,
+        latitud: data.latitud,
+        longitud: data.longitud,
+        creadoPor: data.creadoPor,
+        editadoPor: data.editadoPor,
+        fechaEdicion: data.fechaEdicion,
+        synced: data.synced,
       ));
     }
 
     return result;
   }
 
-  Future<void> marcarSynced(String actaId) async {
-    final actas = await _db.obtenerTodasLasActas();
-    final existente = actas.where((a) => a.id == actaId).firstOrNull;
-    if (existente != null) {
-      await _db.actualizarActaLocal(existente.copyWith(synced: true));
-    }
-  }
-
-  Future<void> encolarSync(ActaModel acta) async {
-    await _db.encolarOperacion(SyncQueueCompanion(
-      entityType: Value('acta'),
-      operation: Value('create'),
-      payload: Value(jsonEncode(acta.toJson())),
-    ));
+  Future<bool> verificarAsignacionVeedor(String veedorId, String jrvId) async {
+    final asignacion = await (_db.select(_db.veedorJrvLocal)
+          ..where((t) => t.veedorId.equals(veedorId) & t.jrvId.equals(jrvId)))
+        .getSingleOrNull();
+    return asignacion != null;
   }
 }

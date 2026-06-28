@@ -1,29 +1,20 @@
 import 'package:dartz/dartz.dart';
-import '../../../../core/constants/app_roles.dart';
 import '../../../../core/errors/failures.dart';
 import '../entities/acta.dart';
 import '../repositories/actas_repository.dart';
 
+part 'obtener_actas_por_jrv_usecase.g.dart';
+
+/// obtener_actas_por_jrv_usecase.dart
+///
+/// Responsabilidad Única: Obtener actas de una JRV específica (estrategia offline-first).
+
 class ObtenerActasPorJrvUseCase {
   final ActasRepository _repository;
 
-  ObtenerActasPorJrvUseCase({required ActasRepository repository})
-      : _repository = repository;
+  ObtenerActasPorJrvUseCase(this._repository);
 
-  Future<Either<Failure, List<Acta>>> call({
-    required AppRole rolUsuario,
-    required String jrvId,
-    String? veedorId,
-  }) async {
-    final puedeVer = AppPermissions.puedeRegistrarActas(rolUsuario) ||
-        AppPermissions.puedeCorregirCualquierActaDelRecinto(rolUsuario) ||
-        AppPermissions.puedeVerAvanceGlobalYGps(rolUsuario);
-
-    if (!puedeVer) {
-      return const Left(PermissionFailure(
-          'No tienes permiso para consultar actas.'));
-    }
-
-    return _repository.obtenerPorJrv(jrvId);
+  Future<Either<Failure, List<Acta>>> call(String jrvId) async {
+    return await _repository.obtenerActasPorJrv(jrvId);
   }
 }

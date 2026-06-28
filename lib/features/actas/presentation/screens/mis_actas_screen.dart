@@ -19,12 +19,9 @@ class MisActasScreen extends ConsumerWidget {
       );
     }
 
-    final repository = ref.watch(actasRepositoryProvider);
-    final future = usuario.rol == AppRole.coordinadorProvincial
-        ? repository.obtenerPorRecinto('')
-        : usuario.rol == AppRole.coordinadorRecinto
-            ? repository.obtenerPorRecinto('')
-            : repository.obtenerPorVeedor(usuario.id);
+    final db = ref.watch(appDatabaseProvider);
+    // Para la vista "Mis Actas", mostramos todas las actas registradas localmente.
+    final future = db.select(db.actasLocal).get();
 
     return Scaffold(
       backgroundColor: const Color(0xFF0A1628),
@@ -50,38 +47,42 @@ class MisActasScreen extends ConsumerWidget {
               ),
             );
           }
-          final result = snapshot.data;
-          if (result == null) {
-            return const Center(child: Text('Sin datos',
-                style: TextStyle(color: Colors.white54)));
+          final actas = snapshot.data;
+          if (actas == null || actas.isEmpty) {
+            return const Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(Icons.description_outlined,
+                      size: 64, color: Colors.white24),
+                  SizedBox(height: 16),
+                  Text('No hay actas registradas.',
+                      style: TextStyle(
+                          color: Colors.white54, fontSize: 16)),
+                ],
+              ),
+            );
           }
-          return result.fold(
-            (failure) => Center(
-              child: Text(failure.message,
-                  style: const TextStyle(color: Colors.redAccent)),
-            ),
-            (actas) {
-              if (actas.isEmpty) {
-                return const Center(
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Icon(Icons.description_outlined,
-                          size: 64, color: Colors.white24),
-                      SizedBox(height: 16),
-                      Text('No hay actas registradas.',
-                          style: TextStyle(
-                              color: Colors.white54, fontSize: 16)),
-                    ],
-                  ),
-                );
-              }
-              return ListView.builder(
-                padding: const EdgeInsets.all(16),
-                itemCount: actas.length,
-                itemBuilder: (context, index) =>
-                    _ActaCard(acta: actas[index]),
+          return ListView.builder(
+            padding: const EdgeInsets.all(16),
+            itemCount: actas.length,
+            itemBuilder: (context, index) {
+              final actaLocal = actas[index];
+              // Mapeo simple de ActaLocal a Acta para la tarjeta
+              final acta = Acta(
+                id: actaLocal.id,
+                jrvId: actaLocal.jrvId,
+                cargoElectoral: actaLocal.cargoElectoral,
+                totalSufragantes: actaLocal.totalSufragantes,
+                votosBlancos: actaLocal.votosBlancos,
+                votosNulos: actaLocal.votosNulos,
+                organizaciones: const [], // No se necesitan en la tarjeta
+                latitud: actaLocal.latitud,
+                longitud: actaLocal.longitud,
+                creadoPor: actaLocal.creadoPor,
+                synced: actaLocal.synced,
               );
+              return _ActaCard(acta: acta);
             },
           );
         },

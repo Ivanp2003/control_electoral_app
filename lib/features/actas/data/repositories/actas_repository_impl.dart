@@ -1,149 +1,156 @@
+import 'dart:convert';
 import 'package:dartz/dartz.dart';
-import 'package:uuid/uuid.dart';
+import 'package:drift/drift.dart';
 import '../../../../core/errors/failures.dart';
 import '../../../../core/network/connectivity_service.dart';
 import '../../../../database/app_database.dart';
-import '../../domain/entities/acta.dart';
-import '../../domain/entities/organizacion_con_votos.dart';
-import '../../domain/repositories/actas_repository.dart';
-import '../datasources/actas_local_datasource.dart';
-import '../datasources/actas_remote_datasource.dart';
-import '../models/acta_model.dart';
+import '../domain/entities/acta.dart';
+import '../domain/repositories/actas_repository.dart';
+import 'datasources/actas_local_datasource.dart';
+import 'datasources/actas_remote_datasource.dart';
+
+/// actas_repository_impl.dart
+///
+/// Responsabilidad Única: Implementar el patrón offline-first para Actas.
 
 class ActasRepositoryImpl implements ActasRepository {
-  final ActasRemoteDatasource _remote;
-  final ActasLocalDatasource _local;
-  final AppDatabase _db;
+  final ActasLocalDatasource _localDatasource;
+  final ActasRemoteDatasource _remoteDatasource;
   final ConnectivityService _connectivity;
-  final _uuid = const Uuid();
+  final AppDatabase _db; // Necesario para encolar en SyncQueue
 
-  ActasRepositoryImpl({
-    required ActasRemoteDatasource remote,
-    required ActasLocalDatasource local,
-    required AppDatabase db,
-    required ConnectivityService connectivity,
-  })  : _remote = remote,
-        _local = local,
-        _db = db,
-        _connectivity = connectivity;
+  ActasRepositoryImpl(
+    this._localDatasource,
+    this._remoteDatasource,
+    this._connectivity,
+    this._db,
+  );
 
   @override
-  Future<Either<Failure, Acta>> registrar(Acta acta) async {
-    final actaConId = acta.copyWith(id: _uuid.v4());
-    final model = ActaModel.fromEntity(actaConId);
-
+  Future<Either<Failure, List<Acta>>> obtenerActasPorJrv(String jrvId) async {
     try {
-      final online = await _connectivity.isConnected;
-
-      if (online) {
-        await _remote.create(actaConId.jrvId, model);
-        await _local.guardarActa(model.copyWith(synced: true));
-      } else {
-        await _local.guardarActa(model.copyWith(synced: false));
-        await _local.encolarSync(model);
-      }
-
-      return Right(actaConId);
-    } on Failure catch (e) {
-      return Left(e);
+      final actas = await _localDatasource.obtenerActasPorJrv(jrvId);
+      return Right(actas);
     } catch (e) {
-      return Left(ServerFailure('Error al registrar acta: $e'));
+      return Left(CacheFailure('Error al leer actas locales: $e'));
     }
   }
 
   @override
-  Future<Either<Failure, Acta>> corregir(Acta acta, String editadoPor) async {
-    final actaEditada = acta.copyWith(
-      editadoPor: editadoPor,
-      fechaEdicion: DateTime.now(),
+  Future<Either<Failure, void>> registrarActa(Acta acta) async {
+    try {
+      final isOnline = await _connectivity.isConnected;
+
+      if (isOnline) {
+        try {
+          await _remoteDatasource.registrarActa(acta);
+          // Si tiene éxito en remoto, guardar localmente como sincronizado
+          final syncedActa = _marcarComoSynced(acta, true);
+          await _localDatasource.guardarActaLocal(syncedActa);
+          return const Right(null);
+        } catch (e) {
+          // Si falla remoto (ej. error 500 temporal), caer al fallback offline
+          return await _guardarOfflineEnCola(acta, 'CREATE');
+        }
+      } else {
+        return await _guardarOfflineEnCola(acta, 'CREATE');
+      }
+    } catch (e) {
+      return Left(CacheFailure('Error al registrar el acta: $e'));
+    }
+  }
+
+  @override
+  Future<Either<Failure, void>> corregirActa(Acta acta) async {
+    try {
+      final isOnline = await _connectivity.isConnected;
+
+      if (isOnline) {
+        try {
+          await _remoteDatasource.corregirActa(acta);
+          final syncedActa = _marcarComoSynced(acta, true);
+          await _localDatasource.guardarActaLocal(syncedActa);
+          return const Right(null);
+        } catch (e) {
+          return await _guardarOfflineEnCola(acta, 'UPDATE');
+        }
+      } else {
+        return await _guardarOfflineEnCola(acta, 'UPDATE');
+      }
+    } catch (e) {
+      return Left(CacheFailure('Error al corregir el acta: $e'));
+    }
+  }
+
+  // --- Helper Methods ---
+
+  Future<Either<Failure, void>> _guardarOfflineEnCola(Acta acta, String operation) async {
+    try {
+      // 1. Guardar localmente como NO sincronizado
+      final unsyncedActa = _marcarComoSynced(acta, false);
+      await _localDatasource.guardarActaLocal(unsyncedActa);
+
+      // 2. Encolar en SyncQueue
+      final payload = _serializeActaToJson(unsyncedActa);
+      await _db.encolarOperacion(
+        SyncQueueCompanion.insert(
+          entityType: 'actas',
+          operation: operation,
+          payload: payload,
+          status: const Value('pending'),
+        ),
+      );
+
+      return const Right(null);
+    } catch (e) {
+      return Left(CacheFailure('Error al guardar acta offline: $e'));
+    }
+  }
+
+  Acta _marcarComoSynced(Acta acta, bool synced) {
+    return Acta(
+      id: acta.id,
+      jrvId: acta.jrvId,
+      cargoElectoral: acta.cargoElectoral,
+      totalSufragantes: acta.totalSufragantes,
+      votosBlancos: acta.votosBlancos,
+      votosNulos: acta.votosNulos,
+      organizaciones: acta.organizaciones,
+      evidenciaFoto: acta.evidenciaFoto,
+      latitud: acta.latitud,
+      longitud: acta.longitud,
+      creadoPor: acta.creadoPor,
+      editadoPor: acta.editadoPor,
+      fechaEdicion: acta.fechaEdicion,
+      synced: synced,
     );
-    final model = ActaModel.fromEntity(actaEditada);
+  }
 
-    try {
-      final online = await _connectivity.isConnected;
-
-      if (online) {
-        await _remote.update(acta.id, model);
-        await _local.guardarActa(model.copyWith(synced: true));
-      } else {
-        await _local.guardarActa(model.copyWith(synced: false));
-        await _local.encolarSync(model);
-      }
-
-      return Right(actaEditada);
-    } on Failure catch (e) {
-      return Left(e);
-    } catch (e) {
-      return Left(ServerFailure('Error al corregir acta: $e'));
-    }
+  String _serializeActaToJson(Acta acta) {
+    // Genera un payload serializado para SyncQueue
+    return jsonEncode({
+      'id': acta.id,
+      'jrvId': acta.jrvId,
+      'cargoElectoral': acta.cargoElectoral,
+      'totalSufragantes': acta.totalSufragantes,
+      'votosBlancos': acta.votosBlancos,
+      'votosNulos': acta.votosNulos,
+      'organizaciones': acta.organizaciones.map((o) => {
+        'organizacionId': o.organizacionId,
+        'nombre': o.nombre,
+        'votos': o.votos,
+      }).toList(),
+      'evidenciaFoto': acta.evidenciaFoto,
+      'latitud': acta.latitud,
+      'longitud': acta.longitud,
+      'creadoPor': acta.creadoPor,
+      'editadoPor': acta.editadoPor,
+      'fechaEdicion': acta.fechaEdicion?.toIso8601String(),
+    });
   }
 
   @override
-  Future<Either<Failure, List<Acta>>> obtenerPorJrv(String jrvId) async {
-    try {
-      final models = await _local.obtenerActasPorJrv(jrvId);
-      return Right(models.map((m) => m.toEntity()).toList());
-    } catch (e) {
-      return Left(CacheFailure('Error al obtener actas locales: $e'));
-    }
-  }
-
-  Future<List<Acta>> _actasDesdeIds(Iterable<String> jrvIds) async {
-    final todas = await _db.obtenerTodasLasActas();
-    final filtradas = todas.where((a) => jrvIds.contains(a.jrvId)).toList();
-    final result = <Acta>[];
-
-    for (final acta in filtradas) {
-      final detalles = await _db.obtenerDetallePorActa(acta.id);
-      result.add(Acta(
-        id: acta.id,
-        jrvId: acta.jrvId,
-        cargoElectoral: acta.cargoElectoral,
-        votos: detalles
-            .map((d) => OrganizacionConVotos(
-                  organizacionId: d.organizacionId,
-                  nombreOrganizacion: d.nombreOrganizacion,
-                  votos: d.votos,
-                ))
-            .toList(),
-        votosBlancos: acta.votosBlancos,
-        votosNulos: acta.votosNulos,
-        totalSufragantes: acta.totalSufragantes,
-        fotoUrl: acta.fotoUrl,
-        latitud: acta.latitud,
-        longitud: acta.longitud,
-        creadoPor: acta.creadoPor,
-        editadoPor: acta.editadoPor,
-        fechaEdicion: acta.fechaEdicion,
-        synced: acta.synced,
-      ));
-    }
-
-    return result;
-  }
-
-  @override
-  Future<Either<Failure, List<Acta>>> obtenerPorVeedor(String veedorId) async {
-    try {
-      final jrvAsignadas = await _db.obtenerJrvPorVeedor(veedorId);
-      final jrvIds = jrvAsignadas.map((j) => j.jrvId);
-      final actas = await _actasDesdeIds(jrvIds);
-      return Right(actas);
-    } catch (e) {
-      return Left(CacheFailure('Error al obtener actas del veedor: $e'));
-    }
-  }
-
-  @override
-  Future<Either<Failure, List<Acta>>> obtenerPorRecinto(
-      String recintoId) async {
-    try {
-      final jrvAsignadas = await _db.obtenerJrvPorRecinto(recintoId);
-      final jrvIds = jrvAsignadas.map((j) => j.jrvId);
-      final actas = await _actasDesdeIds(jrvIds);
-      return Right(actas);
-    } catch (e) {
-      return Left(CacheFailure('Error al obtener actas del recinto: $e'));
-    }
+  Future<bool> verificarAsignacionVeedor(String veedorId, String jrvId) async {
+    return await _localDatasource.verificarAsignacionVeedor(veedorId, jrvId);
   }
 }

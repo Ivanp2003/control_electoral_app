@@ -2,53 +2,53 @@ import 'package:dartz/dartz.dart';
 import '../../../../core/constants/app_roles.dart';
 import '../../../../core/errors/failures.dart';
 import '../../../../core/validators/acta_validator.dart';
+import '../../../auth/domain/entities/usuario.dart';
 import '../entities/acta.dart';
 import '../repositories/actas_repository.dart';
+
+/// corregir_acta_usecase.dart
+///
+/// Responsabilidad Única: Orquestar la corrección de un acta, validando matemáticamente
+/// y asegurando que el usuario tenga permisos según su rol (dueño o coordinador).
 
 class CorregirActaUseCase {
   final ActasRepository _repository;
 
-  CorregirActaUseCase({required ActasRepository repository})
-      : _repository = repository;
+  CorregirActaUseCase(this._repository);
 
-  Either<Failure, Unit> _validar(Acta acta) {
-    return validarActa(
-      totalSufragantes: acta.totalSufragantes,
-      votosOrganizaciones: acta.votos.map((v) => v.votos).toList(),
-      votosBlancos: acta.votosBlancos,
-      votosNulos: acta.votosNulos,
+  Future<Either<Failure, void>> call(Acta actaOriginal, Acta actaCorregida, Usuario usuario) async {
+    // 1. Verificar Permisos Globales (AppPermissions)
+    final esPropia = actaOriginal.creadoPor == usuario.id;
+    final puedeComoDueno = esPropia && AppPermissions.puedeCorregirSusPropiasActas(usuario.rol);
+    final puedeComoCoordinador = AppPermissions.puedeCorregirCualquierActaDelRecinto(usuario.rol);
+
+    if (!puedeComoDueno && !puedeComoCoordinador) {
+      return const Left(PermissionFailure('No tienes permiso para corregir esta acta.'));
+    }
+
+    // 2. Verificar Asignación Veedor-JRV (si es dueño, debe seguir asignado)
+    if (puedeComoDueno) {
+      final asignado = await _repository.verificarAsignacionVeedor(usuario.id, actaCorregida.jrvId);
+      if (!asignado) {
+        return const Left(PermissionFailure('Ya no tienes asignada esta JRV.'));
+      }
+    }
+    // Nota: Si es coordinador, se asume que puede corregir cualquiera del recinto. 
+    // Idealmente, también se verificaría la asignación Coordinador <-> Recinto aquí.
+
+    // 3. Validación Matemática Pura
+    final resultValidacion = validarActa(
+      totalSufragantes: actaCorregida.totalSufragantes,
+      votosOrganizaciones: actaCorregida.organizaciones.map((o) => o.votos).toList(),
+      votosBlancos: actaCorregida.votosBlancos,
+      votosNulos: actaCorregida.votosNulos,
     );
-  }
 
-  Future<Either<Failure, Acta>> call({
-    required AppRole rolUsuario,
-    required Acta acta,
-    required String editadoPor,
-    required bool esPropia,
-  }) async {
-    final puedeCorregirPropia =
-        AppPermissions.puedeCorregirSusPropiasActas(rolUsuario);
-    final puedeCorregirCualquiera =
-        AppPermissions.puedeCorregirCualquierActaDelRecinto(rolUsuario);
-
-    if (!puedeCorregirPropia && !puedeCorregirCualquiera) {
-      return const Left(PermissionFailure(
-          'No tienes permiso para corregir actas.'));
+    if (resultValidacion.isLeft()) {
+      return resultValidacion;
     }
 
-    if (!puedeCorregirCualquiera && !esPropia) {
-      return const Left(PermissionFailure(
-          'Solo puedes corregir tus propias actas.'));
-    }
-
-    final validacion = _validar(acta);
-    if (validacion.isLeft()) {
-      return validacion.fold(
-        (failure) => Left(failure),
-        (_) => Left(ActaInconsistenteFailure(diferencia: 0)),
-      );
-    }
-
-    return _repository.corregir(acta, editadoPor);
+    // 4. Ejecutar Corrección Offline-First
+    return await _repository.corregirActa(actaCorregida);
   }
 }
