@@ -25,6 +25,11 @@ class CacheFailure extends Failure {
   const CacheFailure([super.message = 'Error al acceder al almacenamiento local.']);
 }
 
+/// Fallo al procesar o validar una evidencia.
+class EvidenciaInvalidaFailure extends Failure {
+  const EvidenciaInvalidaFailure([super.message = 'La evidencia proporcionada es inválida.']);
+}
+
 /// Fallo de validación de datos (ej. formato de cédula incorrecto, inconsistencia en sumatorias).
 class ValidationFailure extends Failure {
   const ValidationFailure([super.message = 'Validación de datos fallida.']);

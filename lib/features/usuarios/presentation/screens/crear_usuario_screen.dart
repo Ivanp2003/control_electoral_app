@@ -105,10 +105,16 @@ class _CrearUsuarioScreenState extends ConsumerState<CrearUsuarioScreen> {
   }
 
   List<String> _rolesDisponibles(AppRole? rolActual) {
-    if (rolActual == AppRole.coordinadorProvincial) {
-      return ['veedor', 'coordinadorRecinto'];
+    if (rolActual == null) return [];
+    
+    final roles = <String>[];
+    if (AppPermissions.puedeCrearVeedores(rolActual)) {
+      roles.add('veedor');
     }
-    return ['veedor'];
+    if (AppPermissions.puedeCrearCoordinadoresRecinto(rolActual)) {
+      roles.add('coordinadorRecinto');
+    }
+    return roles;
   }
 
   InputDecoration _inputDecor() {

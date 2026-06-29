@@ -1,14 +1,18 @@
 import 'dart:io';
+import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:camera/camera.dart';
+import '../../../../core/constants/app_roles.dart';
+import '../../../auth/domain/entities/usuario.dart';
 import '../../../geolocalizacion/domain/entities/gps_data.dart';
-import '../../../geolocalizacion/domain/services/gps_service.dart';
-import '../../domain/services/sharpness_analyzer.dart';
+import '../../../geolocalizacion/domain/usecases/verificar_y_capturar_gps_usecase.dart';
 import '../../domain/entities/evidencia_data.dart';
+import '../../domain/usecases/capturar_evidencia_usecase.dart';
 
 enum EvidenciaStep {
-  gpsPermission,
+  permisoGps,
   capturaGps,
-  cameraPermission,
+  permisoCamara,
   capturaFoto,
   analisisNitidez,
   completado,
@@ -21,15 +25,13 @@ class EvidenciaFlowState {
   final String? fotoPath;
   final EvidenciaData? evidencia;
   final String? error;
-  final bool cargando;
 
   const EvidenciaFlowState({
-    this.step = EvidenciaStep.gpsPermission,
+    this.step = EvidenciaStep.permisoGps,
     this.gps,
     this.fotoPath,
     this.evidencia,
     this.error,
-    this.cargando = false,
   });
 
   EvidenciaFlowState copyWith({
@@ -38,101 +40,154 @@ class EvidenciaFlowState {
     String? fotoPath,
     EvidenciaData? evidencia,
     String? error,
-    bool? cargando,
   }) {
     return EvidenciaFlowState(
       step: step ?? this.step,
       gps: gps ?? this.gps,
       fotoPath: fotoPath ?? this.fotoPath,
-      evidencia: evidencia ?? this.evidencia,
+      // El error se limpia por defecto salvo que se pase uno nuevo explícitamente, 
+      // esto asegura que al cambiar de paso no arrastremos errores viejos.
+      // Para retener un error explícitamente se puede pasar `error: this.error`.
       error: error,
-      cargando: cargando ?? this.cargando,
+    );
+  }
+  
+  EvidenciaFlowState clearError() {
+    return EvidenciaFlowState(
+      step: step,
+      gps: gps,
+      fotoPath: fotoPath,
+      evidencia: evidencia,
+      error: null,
     );
   }
 }
 
 class EvidenciaFlowNotifier extends StateNotifier<EvidenciaFlowState> {
-  final GpsService _gpsService;
-  final SharpnessAnalyzer _sharpnessAnalyzer;
+  final VerificarYCapturarGpsUseCase _gpsUseCase;
+  final CapturarEvidenciaUseCase _capturarUseCase;
+  CameraController? _cameraController;
 
   EvidenciaFlowNotifier({
-    required GpsService gpsService,
-    required SharpnessAnalyzer sharpnessAnalyzer,
-  })  : _gpsService = gpsService,
-        _sharpnessAnalyzer = sharpnessAnalyzer,
+    required VerificarYCapturarGpsUseCase gpsUseCase,
+    required CapturarEvidenciaUseCase capturarUseCase,
+  })  : _gpsUseCase = gpsUseCase,
+        _capturarUseCase = capturarUseCase,
         super(const EvidenciaFlowState());
 
-  Future<void> verificarGps() async {
-    state = state.copyWith(cargando: true, error: null);
-    final result = await _gpsService.verificarYCapatutar();
+  CameraController? get cameraController => _cameraController;
+  
+  @visibleForTesting
+  set cameraController(CameraController? controller) {
+    _cameraController = controller;
+  }
 
+  @override
+  void dispose() {
+    _cameraController?.dispose();
+    super.dispose();
+  }
+
+  /// Paso 1 y 2: Verificar permisos y capturar GPS
+  Future<void> capturarGps(Usuario usuario) async {
+    // Verificamos permisos a nivel de rol antes de avanzar
+    if (!AppPermissions.puedeCapturarFotos(usuario.rol)) {
+      state = state.copyWith(
+        step: EvidenciaStep.rechazado,
+        error: 'Tu rol no tiene permiso para capturar evidencia.',
+      );
+      return;
+    }
+
+    state = state.copyWith(step: EvidenciaStep.capturaGps).clearError();
+    
+    final result = await _gpsUseCase();
+    
     result.fold(
       (failure) {
         state = state.copyWith(
           step: EvidenciaStep.rechazado,
           error: failure.message,
-          cargando: false,
         );
       },
-      (gps) {
+      (gpsData) {
         state = state.copyWith(
-          step: EvidenciaStep.cameraPermission,
-          gps: gps,
-          cargando: false,
-        );
+          step: EvidenciaStep.permisoCamara,
+          gps: gpsData,
+        ).clearError();
       },
     );
   }
 
-  void fotoCapturada(String path) {
-    state = state.copyWith(
-      step: EvidenciaStep.analisisNitidez,
-      fotoPath: path,
-      cargando: true,
-    );
-    _analizarNitidez(File(path));
-  }
+  /// Paso 3: Inicializar Cámara
+  Future<void> inicializarCamara() async {
+    if (state.step != EvidenciaStep.permisoCamara) return;
 
-  Future<void> _analizarNitidez(File foto) async {
-    final result = await _sharpnessAnalyzer.isSharp(foto);
+    state = state.clearError();
 
-    result.fold(
-      (failure) {
+    try {
+      final cameras = await availableCameras();
+      if (cameras.isEmpty) {
         state = state.copyWith(
           step: EvidenciaStep.rechazado,
-          error: failure.message,
-          cargando: false,
+          error: 'No se detectaron cámaras en este dispositivo.',
         );
-      },
-      (sharpness) {
-        if (sharpness.esNitida) {
-          final evidencia = EvidenciaData(
-            fotoPath: foto.path,
-            latitud: state.gps!.latitud,
-            longitud: state.gps!.longitud,
-            precision: state.gps!.precision,
+        return;
+      }
+      
+      final controller = CameraController(cameras.first, ResolutionPreset.high, enableAudio: false);
+      await controller.initialize();
+      _cameraController = controller;
+
+      state = state.copyWith(step: EvidenciaStep.capturaFoto);
+    } catch (e) {
+      state = state.copyWith(
+        step: EvidenciaStep.rechazado,
+        error: 'Error al iniciar la cámara: $e. Verifica los permisos.',
+      );
+    }
+  }
+
+  /// Paso 4 y 5: Capturar Foto y Analizar Nitidez
+  Future<void> tomarFotoYAnalizar(Usuario usuario) async {
+    if (state.step != EvidenciaStep.capturaFoto || _cameraController == null) return;
+    
+    try {
+      state = state.copyWith(step: EvidenciaStep.analisisNitidez).clearError();
+      
+      final xFile = await _cameraController!.takePicture();
+      
+      final result = await _capturarUseCase(
+        usuario: usuario,
+        fotoTemporalPath: xFile.path,
+        // Usamos el GPS que ya capturamos en el Paso 2
+        gpsData: state.gps!,
+      );
+
+      result.fold(
+        (failure) {
+          // Si falló por nitidez o cualquier otra cosa, volvemos a la captura de foto
+          state = state.copyWith(
+            step: EvidenciaStep.capturaFoto,
+            error: failure.message,
           );
+        },
+        (evidencia) {
           state = state.copyWith(
             step: EvidenciaStep.completado,
             evidencia: evidencia,
-            cargando: false,
-          );
-        } else {
-          state = state.copyWith(
-            step: EvidenciaStep.capturaFoto,
-            error: 'Imagen borrosa. Toma una nueva fotografía.',
-            cargando: false,
-          );
-        }
-      },
-    );
+          ).clearError();
+        },
+      );
+    } catch (e) {
+      state = state.copyWith(
+        step: EvidenciaStep.capturaFoto,
+        error: 'Error al tomar la fotografía: $e',
+      );
+    }
   }
 
-  void reintentar() {
-    state = const EvidenciaFlowState(step: EvidenciaStep.gpsPermission);
-  }
-
-  void cancelar() {
-    state = const EvidenciaFlowState(step: EvidenciaStep.rechazado);
+  void reiniciarFlujo() {
+    state = const EvidenciaFlowState(step: EvidenciaStep.permisoGps);
   }
 }

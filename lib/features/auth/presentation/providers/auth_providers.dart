@@ -19,7 +19,7 @@ import '../../../organizaciones/presentation/screens/organizaciones_list_screen.
 import '../../../seeder/presentation/seeder_screen.dart';
 import '../../../actas/presentation/screens/registrar_acta_screen.dart';
 import '../../../actas/presentation/screens/mis_actas_screen.dart';
-import '../../../sync/presentation/widgets/sync_indicator.dart';
+
 import '../../../avance/presentation/screens/avance_electoral_screen.dart';
 import '../../../usuarios/presentation/screens/asignar_coordinador_screen.dart';
 import '../../../usuarios/presentation/screens/asignar_veedores_screen.dart';
@@ -345,10 +345,7 @@ class _HomeScreen extends ConsumerWidget {
           style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
         ),
         actions: [
-          const Padding(
-            padding: EdgeInsets.only(right: 4),
-            child: Center(child: SyncIndicator()),
-          ),
+
           IconButton(
             icon: const Icon(Icons.logout, color: Colors.white70),
             tooltip: 'Cerrar sesión',

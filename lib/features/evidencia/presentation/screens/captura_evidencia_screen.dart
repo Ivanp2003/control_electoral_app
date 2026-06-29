@@ -1,56 +1,25 @@
 import 'package:camera/camera.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../../auth/presentation/providers/auth_providers.dart';
 import '../../presentation/providers/evidencia_providers.dart';
 import '../../presentation/providers/evidencia_flow_notifier.dart';
 
-class CapturaEvidenciaScreen extends ConsumerStatefulWidget {
+class CapturaEvidenciaScreen extends ConsumerWidget {
   const CapturaEvidenciaScreen({super.key});
 
   @override
-  ConsumerState<CapturaEvidenciaScreen> createState() =>
-      _CapturaEvidenciaScreenState();
-}
-
-class _CapturaEvidenciaScreenState
-    extends ConsumerState<CapturaEvidenciaScreen> {
-  CameraController? _cameraController;
-  bool _cameraInicializada = false;
-
-  @override
-  void dispose() {
-    _cameraController?.dispose();
-    super.dispose();
-  }
-
-  Future<void> _initCamera() async {
-    try {
-      final cameras = await availableCameras();
-      if (cameras.isEmpty) {
-        ref.read(evidenciaFlowNotifierProvider.notifier).cancelar();
-        return;
-      }
-      final controller =
-          CameraController(cameras.first, ResolutionPreset.high);
-      await controller.initialize();
-      if (!mounted) return;
-      setState(() {
-        _cameraController = controller;
-        _cameraInicializada = true;
-      });
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error al iniciar cámara: $e')),
-        );
-        ref.read(evidenciaFlowNotifierProvider.notifier).cancelar();
-      }
-    }
-  }
-
-  @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final estado = ref.watch(evidenciaFlowNotifierProvider);
+    final notifier = ref.read(evidenciaFlowNotifierProvider.notifier);
+    final usuario = ref.watch(currentUserProvider)!;
+
+    // Ejecuta la transición automática a la cámara si los permisos están
+    if (estado.step == EvidenciaStep.permisoCamara) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        notifier.inicializarCamara();
+      });
+    }
 
     return Scaffold(
       backgroundColor: const Color(0xFF0A1628),
@@ -64,42 +33,48 @@ class _CapturaEvidenciaScreenState
           onPressed: () => Navigator.pop(context),
         ),
       ),
-      body: _buildBody(estado),
+      body: _buildBody(context, estado, notifier, usuario),
     );
   }
 
-  Widget _buildBody(EvidenciaFlowState estado) {
-    if (estado.cargando) {
-      return const Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            CircularProgressIndicator(color: Color(0xFF4A90D9)),
-            SizedBox(height: 16),
-            Text('Procesando...',
-                style: TextStyle(color: Colors.white70)),
-          ],
-        ),
-      );
-    }
-
+  Widget _buildBody(BuildContext context, EvidenciaFlowState estado, EvidenciaFlowNotifier notifier, dynamic usuario) {
     switch (estado.step) {
-      case EvidenciaStep.gpsPermission:
+      case EvidenciaStep.permisoGps:
       case EvidenciaStep.capturaGps:
-        return _GpsGate(estado: estado);
+        return _GpsGate(
+          estado: estado, 
+          onCapturar: () {
+            if (usuario != null) {
+              notifier.capturarGps(usuario);
+            }
+          },
+        );
 
-      case EvidenciaStep.cameraPermission:
+      case EvidenciaStep.permisoCamara:
+        return const Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              CircularProgressIndicator(color: Color(0xFF4A90D9)),
+              SizedBox(height: 16),
+              Text('Inicializando cámara...', style: TextStyle(color: Colors.white70)),
+            ],
+          ),
+        );
+
       case EvidenciaStep.capturaFoto:
-        if (!_cameraInicializada) {
-          _initCamera();
-          return const Center(
-            child: CircularProgressIndicator(color: Color(0xFF4A90D9)),
-          );
+        final controller = notifier.cameraController;
+        if (controller == null) {
+          return const Center(child: CircularProgressIndicator(color: Color(0xFF4A90D9)));
         }
         return _CameraPreview(
-          controller: _cameraController!,
+          controller: controller,
           estado: estado,
-          onCapture: _capturarFoto,
+          onCapture: () {
+            if (usuario != null) {
+              notifier.tomarFotoYAnalizar(usuario);
+            }
+          },
         );
 
       case EvidenciaStep.analisisNitidez:
@@ -125,38 +100,25 @@ class _CapturaEvidenciaScreenState
         return _ErrorReintentar(
           error: estado.error ?? 'Error desconocido',
           onReintentar: () {
-            ref.read(evidenciaFlowNotifierProvider.notifier).reintentar();
+            notifier.reiniciarFlujo();
           },
         );
-    }
-  }
-
-  Future<void> _capturarFoto() async {
-    if (_cameraController == null || !_cameraController!.value.isInitialized) {
-      return;
-    }
-    try {
-      final xFile = await _cameraController!.takePicture();
-      if (!mounted) return;
-      ref.read(evidenciaFlowNotifierProvider.notifier).fotoCapturada(xFile.path);
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error al capturar foto: $e')),
-        );
-      }
     }
   }
 }
 
 // ── GPS Gate ──────────────────────────────────────────────────────────
 
-class _GpsGate extends ConsumerWidget {
+class _GpsGate extends StatelessWidget {
   final EvidenciaFlowState estado;
-  const _GpsGate({required this.estado});
+  final VoidCallback onCapturar;
+
+  const _GpsGate({required this.estado, required this.onCapturar});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  Widget build(BuildContext context) {
+    final isLoading = estado.step == EvidenciaStep.capturaGps;
+
     return Center(
       child: Padding(
         padding: const EdgeInsets.all(24),
@@ -166,7 +128,7 @@ class _GpsGate extends ConsumerWidget {
             const Icon(Icons.gps_fixed, size: 64, color: Color(0xFF4A90D9)),
             const SizedBox(height: 24),
             const Text(
-              'Captura de Ubicación GPS',
+              'Ubicación GPS',
               style: TextStyle(
                   color: Colors.white,
                   fontSize: 20,
@@ -174,7 +136,7 @@ class _GpsGate extends ConsumerWidget {
             ),
             const SizedBox(height: 12),
             Text(
-              estado.error ?? 'Es necesario obtener tu ubicación para adjuntarla al acta.',
+              estado.error ?? 'Es obligatorio adjuntar tu ubicación GPS al acta para validar la legitimidad del registro.',
               textAlign: TextAlign.center,
               style: TextStyle(
                 color: estado.error != null ? Colors.redAccent : Colors.white54,
@@ -192,14 +154,19 @@ class _GpsGate extends ConsumerWidget {
                   shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(12)),
                 ),
-                icon: const Icon(Icons.my_location),
-                label: const Text('Obtener Ubicación',
-                    style: TextStyle(fontSize: 16)),
-                onPressed: () {
-                  ref
-                      .read(evidenciaFlowNotifierProvider.notifier)
-                      .verificarGps();
-                },
+                icon: isLoading
+                    ? const SizedBox(
+                        width: 20,
+                        height: 20,
+                        child: CircularProgressIndicator(
+                          color: Colors.white,
+                          strokeWidth: 2,
+                        ),
+                      )
+                    : const Icon(Icons.my_location),
+                label: Text(isLoading ? 'Capturando...' : 'Obtener Ubicación',
+                    style: const TextStyle(fontSize: 16)),
+                onPressed: isLoading ? null : onCapturar,
               ),
             ),
           ],
@@ -215,6 +182,7 @@ class _CameraPreview extends StatelessWidget {
   final CameraController controller;
   final EvidenciaFlowState estado;
   final VoidCallback onCapture;
+  
   const _CameraPreview({
     required this.controller,
     required this.estado,
@@ -225,7 +193,7 @@ class _CameraPreview extends StatelessWidget {
   Widget build(BuildContext context) {
     return Stack(
       children: [
-        CameraPreview(controller),
+        SizedBox.expand(child: CameraPreview(controller)),
         if (estado.error != null)
           Positioned(
             top: 16,
@@ -234,7 +202,7 @@ class _CameraPreview extends StatelessWidget {
             child: Container(
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
-                color: Colors.red.withOpacity(0.85),
+                color: Colors.redAccent.withValues(alpha: 0.9),
                 borderRadius: BorderRadius.circular(8),
               ),
               child: Text(estado.error!,
@@ -357,7 +325,7 @@ class _ErrorReintentar extends StatelessWidget {
                       borderRadius: BorderRadius.circular(12)),
                 ),
                 icon: const Icon(Icons.refresh),
-                label: const Text('Reintentar',
+                label: const Text('Reintentar desde el inicio',
                     style: TextStyle(fontSize: 16)),
                 onPressed: onReintentar,
               ),

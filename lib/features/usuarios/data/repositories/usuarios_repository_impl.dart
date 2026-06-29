@@ -50,8 +50,31 @@ class UsuariosRepositoryImpl implements UsuarioRepository {
     required String jrvId,
     required String recintoId,
   }) async {
+    final id = '${veedorId}_$jrvId';
+
+    // 1. Intento Remoto si hay red
+    if (await _checkConnection()) {
+      try {
+        await _remote.asignarVeedorAJrv(
+          veedorId: veedorId,
+          jrvId: jrvId,
+          recintoId: recintoId,
+        );
+        // Si el remoto tuvo éxito, guardamos localmente para caché pero NO encolamos.
+        await _db.guardarAsignacionVeedor(VeedorJrvLocalCompanion(
+          id: Value(id),
+          veedorId: Value(veedorId),
+          jrvId: Value(jrvId),
+          recintoId: Value(recintoId),
+        ));
+        return const Right(unit);
+      } catch (e) {
+        // Falló remoto, fall back a local + cola
+      }
+    }
+
+    // 2. Fallback a Local + SyncQueue
     try {
-      final id = '${veedorId}_$jrvId';
       await _db.guardarAsignacionVeedor(VeedorJrvLocalCompanion(
         id: Value(id),
         veedorId: Value(veedorId),
@@ -71,7 +94,7 @@ class UsuariosRepositoryImpl implements UsuarioRepository {
       ));
       return const Right(unit);
     } catch (e) {
-      return Left(ServerFailure(e.toString()));
+      return Left(CacheFailure(e.toString()));
     }
   }
 

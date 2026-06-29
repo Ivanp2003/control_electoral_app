@@ -231,17 +231,25 @@ class AppDatabase extends _$AppDatabase {
       delete(actasLocal).delete(data);
 
   // ---------------------------------------------------------------------------
-  // CRUD — SyncQueue (Fase 1)
+  // CRUD — SyncQueue (Fases 4 y 6)
   // ---------------------------------------------------------------------------
-
-  Future<List<SyncQueueData>> obtenerColaPendiente() =>
-      (select(syncQueue)..where((t) => t.status.equals('pending'))).get();
 
   Future<int> encolarOperacion(SyncQueueCompanion companion) =>
       into(syncQueue).insert(companion);
 
-  Future<bool> actualizarEstadoCola(SyncQueueData data) =>
-      update(syncQueue).replace(data);
+  Future<List<SyncQueueData>> obtenerOperacionesPendientes() =>
+      (select(syncQueue)..where((t) => t.status.equals('pending'))).get();
+
+  Future<int> actualizarEstadoSync(int id, String status) =>
+      (update(syncQueue)..where((t) => t.id.equals(id)))
+          .write(SyncQueueCompanion(status: Value(status)));
+
+  Future<int> incrementarIntentoSync(int id, int attempts, String status) =>
+      (update(syncQueue)..where((t) => t.id.equals(id)))
+          .write(SyncQueueCompanion(
+            attempts: Value(attempts),
+            status: Value(status),
+          ));
 
   Future<int> eliminarDeLaCola(SyncQueueData data) =>
       delete(syncQueue).delete(data);

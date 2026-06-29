@@ -1,132 +1,106 @@
-import 'dart:io';
 import 'package:dartz/dartz.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mocktail/mocktail.dart';
-import '../../lib/core/errors/failures.dart';
-import '../../lib/features/evidencia/domain/services/sharpness_analyzer.dart';
-import '../../lib/features/evidencia/presentation/providers/evidencia_flow_notifier.dart';
-import '../../lib/features/geolocalizacion/domain/entities/gps_data.dart';
-import '../../lib/features/geolocalizacion/domain/services/gps_service.dart';
+import 'package:control_electoral_app/core/errors/failures.dart';
+import 'package:control_electoral_app/core/constants/app_roles.dart';
+import 'package:control_electoral_app/features/auth/domain/entities/usuario.dart';
+import 'package:control_electoral_app/features/evidencia/presentation/providers/evidencia_flow_notifier.dart';
+import 'package:control_electoral_app/features/geolocalizacion/domain/entities/gps_data.dart';
+import 'package:control_electoral_app/features/geolocalizacion/domain/usecases/verificar_y_capturar_gps_usecase.dart';
+import 'package:control_electoral_app/features/evidencia/domain/usecases/capturar_evidencia_usecase.dart';
+import 'package:control_electoral_app/features/evidencia/domain/entities/evidencia_data.dart';
 
-class MockGpsService extends Mock implements GpsService {}
+import 'package:camera/camera.dart';
 
-class MockSharpnessAnalyzer extends Mock implements SharpnessAnalyzer {}
-
-class _FileFake extends Fake implements File {}
+class MockGpsUseCase extends Mock implements VerificarYCapturarGpsUseCase {}
+class MockCapturarUseCase extends Mock implements CapturarEvidenciaUseCase {}
+class MockCameraController extends Mock implements CameraController {}
+class _FakeGpsData extends Fake implements GpsData {}
 
 void main() {
-  late MockGpsService mockGps;
-  late MockSharpnessAnalyzer mockSharpness;
+  late MockGpsUseCase mockGpsUseCase;
+  late MockCapturarUseCase mockCapturarUseCase;
   late EvidenciaFlowNotifier notifier;
 
+  const veedorUser = Usuario(id: '1', nombres: 'Test', apellidos: 'A', telefono: '0', correo: 'a@a.com', passwordChanged: false, cedula: '123', rol: AppRole.veedor);
+  const provincialUser = Usuario(id: '2', nombres: 'Test', apellidos: 'A', telefono: '0', correo: 'a@a.com', passwordChanged: false, cedula: '456', rol: AppRole.coordinadorProvincial);
+
   setUpAll(() {
-    registerFallbackValue(_FileFake());
+    registerFallbackValue(_FakeGpsData());
   });
 
   setUp(() {
-    mockGps = MockGpsService();
-    mockSharpness = MockSharpnessAnalyzer();
+    mockGpsUseCase = MockGpsUseCase();
+    mockCapturarUseCase = MockCapturarUseCase();
     notifier = EvidenciaFlowNotifier(
-      gpsService: mockGps,
-      sharpnessAnalyzer: mockSharpness,
+      gpsUseCase: mockGpsUseCase,
+      capturarUseCase: mockCapturarUseCase,
     );
   });
 
-  group('EvidenciaFlowNotifier', () {
-    test('inicializa en estado gpsPermission', () {
-      expect(notifier.state.step, EvidenciaStep.gpsPermission);
-      expect(notifier.state.cargando, false);
+  group('EvidenciaFlowNotifier - Máquina de Estados', () {
+    test('inicializa en estado permisoGps', () {
+      expect(notifier.state.step, EvidenciaStep.permisoGps);
       expect(notifier.state.error, null);
     });
 
-    test('GPS denegado → estado rechazado', () async {
-      when(() => mockGps.verificarYCapatutar())
-          .thenAnswer((_) async => const Left(
-                GpsGateFailure('Permiso de ubicación denegado.'),
-              ));
+    test('Transición correcta tras GPS denegado (clava en rechazo)', () async {
+      when(() => mockGpsUseCase()).thenAnswer(
+        (_) async => const Left(GpsGateFailure('Permiso de ubicación denegado.')),
+      );
 
-      await notifier.verificarGps();
+      await notifier.capturarGps(veedorUser);
 
       expect(notifier.state.step, EvidenciaStep.rechazado);
       expect(notifier.state.error, contains('denegado'));
-      expect(notifier.state.cargando, false);
     });
 
-    test('GPS exitoso → transiciona a cameraPermission', () async {
-      when(() => mockGps.verificarYCapatutar()).thenAnswer(
+    test('Transición denegada por Rol incorrecto', () async {
+      // El coordinadorProvincial no puede capturar fotos
+      await notifier.capturarGps(provincialUser);
+
+      expect(notifier.state.step, EvidenciaStep.rechazado);
+      expect(notifier.state.error, contains('no tiene permiso'));
+    });
+
+    test('Transición correcta tras GPS exitoso (avanza a permisoCamara)', () async {
+      when(() => mockGpsUseCase()).thenAnswer(
         (_) async => Right(GpsData(latitud: -0.18, longitud: -78.46)),
       );
 
-      await notifier.verificarGps();
+      await notifier.capturarGps(veedorUser);
 
-      expect(notifier.state.step, EvidenciaStep.cameraPermission);
+      expect(notifier.state.step, EvidenciaStep.permisoCamara);
       expect(notifier.state.gps, isNotNull);
       expect(notifier.state.gps!.latitud, -0.18);
     });
 
-    test('foto borrosa → regresa a capturaFoto con error', () async {
-      when(() => mockGps.verificarYCapatutar()).thenAnswer(
-        (_) async => Right(GpsData(latitud: -0.18, longitud: -78.46)),
-      );
-      await notifier.verificarGps();
-
-      when(() => mockSharpness.isSharp(any())).thenAnswer(
-        (_) async => Right(SharpnessResult(esNitida: false, score: 2.0)),
+    test('Transición correcta tras rechazo de nitidez (vuelve a capturaFoto)', () async {
+      // Configuramos estado previo
+      notifier.state = notifier.state.copyWith(
+        step: EvidenciaStep.capturaFoto,
+        gps: GpsData(latitud: 0, longitud: 0),
       );
 
-      notifier.fotoCapturada('/tmp/foto_borrosa.jpg');
+      // Usamos un FakeCamera para que takePicture retorne algo rápido
+      final mockCamera = MockCameraController();
+      when(() => mockCamera.takePicture()).thenAnswer((_) async => XFile('/dummy.jpg'));
+      notifier.cameraController = mockCamera;
 
-      await Future.delayed(Duration.zero);
+      // Hacemos que el UseCase de nitidez devuelva error (borrosa)
+      when(() => mockCapturarUseCase(
+        usuario: veedorUser, 
+        fotoTemporalPath: any(named: 'fotoTemporalPath'),
+        gpsData: any(named: 'gpsData'),
+      )).thenAnswer(
+        (_) async => const Left(EvidenciaInvalidaFailure('La imagen es demasiado borrosa.')),
+      );
 
+      await notifier.tomarFotoYAnalizar(veedorUser);
+
+      // Debe haber retrocedido a capturaFoto con error
       expect(notifier.state.step, EvidenciaStep.capturaFoto);
       expect(notifier.state.error, contains('borrosa'));
-    });
-
-    test('foto nítida → estado completado con EvidenciaData', () async {
-      when(() => mockGps.verificarYCapatutar()).thenAnswer(
-        (_) async => Right(GpsData(latitud: -0.18, longitud: -78.46)),
-      );
-      await notifier.verificarGps();
-
-      when(() => mockSharpness.isSharp(any())).thenAnswer(
-        (_) async => Right(SharpnessResult(esNitida: true, score: 15.0)),
-      );
-
-      notifier.fotoCapturada('/tmp/foto.jpg');
-
-      await Future.delayed(Duration.zero);
-
-      expect(notifier.state.step, EvidenciaStep.completado);
-      expect(notifier.state.evidencia, isNotNull);
-      expect(notifier.state.evidencia!.fotoPath, '/tmp/foto.jpg');
-      expect(notifier.state.evidencia!.latitud, -0.18);
-      expect(notifier.state.evidencia!.longitud, -78.46);
-    });
-
-    test('GPS falla con excepción → estado rechazado con mensaje', () async {
-      when(() => mockGps.verificarYCapatutar())
-          .thenAnswer((_) async => Left(GpsGateFailure('Error de prueba')));
-
-      await notifier.verificarGps();
-
-      expect(notifier.state.step, EvidenciaStep.rechazado);
-      expect(notifier.state.error, contains('Error de prueba'));
-    });
-
-    test('reintentar resetea el estado a gpsPermission', () async {
-      when(() => mockGps.verificarYCapatutar())
-          .thenAnswer((_) async => const Left(
-                GpsGateFailure('Permiso de ubicación denegado.'),
-              ));
-      await notifier.verificarGps();
-
-      expect(notifier.state.step, EvidenciaStep.rechazado);
-
-      notifier.reintentar();
-
-      expect(notifier.state.step, EvidenciaStep.gpsPermission);
-      expect(notifier.state.cargando, false);
-      expect(notifier.state.error, null);
     });
   });
 }

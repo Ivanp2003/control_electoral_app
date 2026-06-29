@@ -6,7 +6,7 @@ import '../../domain/services/gps_service.dart';
 
 class GeolocatorGpsService implements GpsService {
   @override
-  Future<Either<Failure, GpsData>> verificarYCapatutar() async {
+  Future<Either<Failure, Unit>> verificarPermisos() async {
     try {
       bool enabled = await Geolocator.isLocationServiceEnabled();
       if (!enabled) {
@@ -30,11 +30,22 @@ class GeolocatorGpsService implements GpsService {
         return const Left(
           GpsGateFailure(
             'Permiso de ubicación denegado permanentemente. '
-            'Hábilitalo en Configuración.',
+            'Habilítalo en Configuración.',
           ),
         );
       }
 
+      return const Right(unit);
+    } on Failure catch (e) {
+      return Left(e);
+    } catch (e) {
+      return Left(GpsGateFailure('Error al verificar permisos GPS: $e'));
+    }
+  }
+
+  @override
+  Future<Either<Failure, GpsData>> capturarCoordenadas() async {
+    try {
       final pos = await Geolocator.getCurrentPosition(
         locationSettings: const LocationSettings(
           accuracy: LocationAccuracy.high,
@@ -47,10 +58,8 @@ class GeolocatorGpsService implements GpsService {
         longitud: pos.longitude,
         precision: pos.accuracy,
       ));
-    } on Failure catch (e) {
-      return Left(e);
     } catch (e) {
-      return Left(GpsGateFailure('Error al capturar GPS: $e'));
+      return Left(GpsGateFailure('Error al capturar coordenadas GPS: $e'));
     }
   }
 }

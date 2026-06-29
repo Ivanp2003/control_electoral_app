@@ -98,8 +98,8 @@ class ActaModel extends Equatable {
       votos: votosJson
           .map((v) => OrganizacionConVotos(
                 organizacionId: v['organizacionId'] as String,
-                nombreOrganizacion: v['nombreOrganizacion'] as String,
-                votos: v['votos'] as int,
+                nombreOrganizacion: v['nombreOrganizacion'] as String? ?? v['nombre'] as String? ?? '',
+                votos: (v['votos'] as num).toInt(),
               ))
           .toList(),
       votosBlancos: json['votosBlancos'] as int,

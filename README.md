@@ -124,9 +124,13 @@ Dado que los seeders automáticos se inyectan en la Fase 3, cree el primer usuar
 
 ---
 
-## 6. Notas de Implementación Históricas
+## 6. Notas de Implementación Históricas y Saneamiento
 
 * **Esquema Local (Fase 3/4)**: Las tablas `ActaDetalleLocal` y `VeedorJrvLocal` se crearon prematuramente en el código durante el desarrollo inicial de la Fase 3 por un error de proceso (leakage). Fueron formalizadas en la Fase 4 como la versión 3 de la base de datos (`schemaVersion = 3`) sin necesidad de revertir y recrear la migración, manteniendo la estabilidad del esquema en producción.
+* **Saneamiento de Seguridad (Pre-Fase 6)**: Se descubrió que las pantallas legacy de creación y asignación de usuarios carecían de chequeos de permisos reales, confiando en adivinanzas de UI. Se integró `AppPermissions` (nuestra fuente de verdad de RBAC) y se migró la validación de roles al `AsignarVeedorAJrvUseCase` en la capa de dominio.
+* **Patrón de Upsert Idempotente (Fase 6)**: En condiciones de inestabilidad de red (donde un acta puede crearse pero sus detalles fallan por timeout), reintentar la creación del acta generaba un error fatal `409 Conflict`. Se introdujo el método `_executeUpsert` que atrapa `409` (Conflict) y `404` (Not Found) para converger al estado deseado, unificando los flujos de CREATE/UPDATE sin riesgo de corrupción.
+* **Compensación de Almacenamiento (Fase 6)**: Si el upload de la foto a Appwrite Storage tiene éxito pero falla la creación de los documentos de base de datos subsecuentes, el sistema aplica un patrón de rollback borrando el archivo huérfano (`deleteFile`), evitando acumulación de basura en el storage durante reintentos.
+* **Errores Permanentes vs Reintentables (Fase 6)**: El motor de Sync fue afinado para distinguir errores de red/timeout (408, 429, 5xx) que deben reintentarse, frente a errores lógicos permanentes (ej. Bad Request o esquema inválido) que marcan la tarea como `failed` de inmediato sin gastar ciclos de red.
 
 ---
 
@@ -156,9 +160,13 @@ Dado que los seeders automáticos se inyectan en la Fase 3, cree el primer usuar
   - `EvidenciaData` se integra con el flujo de registro de actas (fotoPath, latitud, longitud).
   - Permisos nativos actualizados: `CAMERA`, `ACCESS_FINE_LOCATION`, `ACCESS_COARSE_LOCATION` (Android); `NSCameraUsageDescription`, `NSLocationWhenInUseUsageDescription` (iOS).
 * [x] **Fase 6: Sync Engine**
-  - `SyncProcessorImpl` procesa la `SyncQueue` (entityType + operation + payload JSON) con deserialización y dispatch al datasource remoto correspondiente.
-  - Retry con max 3 intentos: al fallar incrementa `attempts`; al llegar a 3 marca `status = 'failed'`.
-  - `SyncOrchestrator` (Riverpod Notifier) escucha `ConnectivityService.onConnectivityChanged` y ejecuta el processor cada 10s mientras esté online.
-  - `SyncIndicator` widget en el AppBar del HomeScreen muestra estado (idle/syncing/error) y permite sincronización manual al tocar.
-  - Cola existente `SyncQueue` (Drift, Fase 1) + CRUD (`obtenerColaPendiente`, `encolarOperacion`, `actualizarEstadoCola`, `eliminarDeLaCola`).
-  - `ActasRemoteDatasource.getById()` añadido para eventual resolución LWW.
+  - Implementación del `SyncRemoteExecutor` para procesar la `SyncQueue` (entityType + operation + payload JSON).
+  - Algoritmo idempotente con **Upsert** simétrico (CREATE con fallback a update en 409; UPDATE con fallback a create en 404).
+  - Manejo de excepciones inteligente: detención inmediata ante errores 4xx (permanentes, esquema inválido) exceptuando 408 y 429 (transitorios).
+  - Integración Storage: Subida de evidencia fotográfica automática con **Patrón de Compensación (Rollback)** (borrado del archivo huérfano si el documento del acta falla).
+  - Repo Remote-First: Las operaciones locales online-first retornan temprano sin encolar tareas duplicadas.
+  - `SyncOrchestrator` escucha conectividad y procesa cola con redundancia `attempts` limitada.
+* [x] **Saneamiento y QA General**
+  - Integración transversal de `AppPermissions` a módulos legacy de usuarios.
+  - Identificación y resolución de validación de roles en la capa de negocio pura (Use Cases).
+  - 0 Errores críticos en `flutter analyze` y cobertura de tests unitarios validada.

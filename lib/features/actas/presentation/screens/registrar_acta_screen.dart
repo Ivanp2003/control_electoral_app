@@ -11,7 +11,11 @@ import '../../../organizaciones/domain/entities/organizacion_politica.dart';
 import '../../../recintos/data/models/jrv_model.dart';
 import '../../../evidencia/domain/entities/evidencia_data.dart';
 import '../../../evidencia/presentation/screens/captura_evidencia_screen.dart';
+import '../../domain/entities/acta.dart';
+import '../../domain/entities/organizacion_con_votos.dart';
+import '../../domain/usecases/registrar_acta_usecase.dart';
 import '../providers/actas_providers.dart';
+import '../../../sync/presentation/widgets/sync_indicator.dart';
 
 class RegistrarActaScreen extends ConsumerStatefulWidget {
   const RegistrarActaScreen({super.key});
@@ -83,6 +87,7 @@ class _RegistrarActaScreenState extends ConsumerState<RegistrarActaScreen> {
         title: const Text('Registrar Acta',
             style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
         iconTheme: const IconThemeData(color: Colors.white),
+        actions: const [SyncIndicator()],
       ),
       body: _buildBody(),
     );
@@ -405,7 +410,7 @@ class _RegistrarActaScreenState extends ConsumerState<RegistrarActaScreen> {
     final votos = _organizaciones
         .map((org) => OrganizacionConVotos(
               organizacionId: org.id,
-              nombre: org.nombre,
+              nombreOrganizacion: org.nombre,
               votos: int.tryParse(
                       _votosControllers[org.id]?.text ?? '') ??
                   0,
@@ -513,7 +518,7 @@ class _RegistrarActaScreenState extends ConsumerState<RegistrarActaScreen> {
     final organizacionesConVotos = _organizaciones
         .map((org) => OrganizacionConVotos(
               organizacionId: org.id,
-              nombre: org.nombre,
+              nombreOrganizacion: org.nombre,
               votos: int.tryParse(
                       _votosControllers[org.id]?.text ?? '') ??
                   0,

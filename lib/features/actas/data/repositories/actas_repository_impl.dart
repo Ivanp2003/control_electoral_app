@@ -137,7 +137,7 @@ class ActasRepositoryImpl implements ActasRepository {
       'votosNulos': acta.votosNulos,
       'organizaciones': acta.organizaciones.map((o) => {
         'organizacionId': o.organizacionId,
-        'nombre': o.nombre,
+        'nombreOrganizacion': o.nombreOrganizacion,
         'votos': o.votos,
       }).toList(),
       'evidenciaFoto': acta.evidenciaFoto,

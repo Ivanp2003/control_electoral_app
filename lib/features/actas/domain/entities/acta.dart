@@ -1,4 +1,5 @@
 import 'package:equatable/equatable.dart';
+import 'organizacion_con_votos.dart';
 
 /// acta.dart
 ///
@@ -55,19 +56,4 @@ class Acta extends Equatable {
         fechaEdicion,
         synced,
       ];
-}
-
-class OrganizacionConVotos extends Equatable {
-  final String organizacionId;
-  final String nombre;
-  final int votos;
-
-  const OrganizacionConVotos({
-    required this.organizacionId,
-    required this.nombre,
-    required this.votos,
-  });
-
-  @override
-  List<Object?> get props => [organizacionId, nombre, votos];
 }

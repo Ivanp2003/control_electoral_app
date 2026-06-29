@@ -4,6 +4,8 @@ import '../../../../core/constants/app_roles.dart';
 import '../../../auth/presentation/providers/auth_providers.dart';
 import '../../domain/entities/acta.dart';
 import '../providers/actas_providers.dart';
+import '../../../../database/app_database.dart';
+import '../../../sync/presentation/widgets/sync_indicator.dart';
 
 class MisActasScreen extends ConsumerWidget {
   const MisActasScreen({super.key});
@@ -30,6 +32,7 @@ class MisActasScreen extends ConsumerWidget {
         title: const Text('Mis Actas',
             style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
         iconTheme: const IconThemeData(color: Colors.white),
+        actions: const [SyncIndicator()],
       ),
       body: FutureBuilder(
         future: future,

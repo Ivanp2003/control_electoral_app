@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../database/app_database.dart';
 import '../../../auth/domain/entities/usuario.dart';
 import '../../../auth/presentation/providers/auth_providers.dart';
+import '../../../../core/constants/app_roles.dart';
 import '../providers/usuarios_providers.dart';
 
 class AsignarVeedoresScreen extends ConsumerStatefulWidget {
@@ -25,6 +26,16 @@ class _AsignarVeedoresScreenState
     final usuario = ref.watch(currentUserProvider);
     final db = ref.read(appDatabaseProvider);
     final veedoresAsync = ref.watch(listarUsuariosProvider('veedor'));
+
+    if (usuario == null || !AppPermissions.puedeAsignarVeedores(usuario.rol)) {
+      return const Scaffold(
+        backgroundColor: Color(0xFF0A1628),
+        body: Center(
+          child: Text('No tienes permisos para asignar veedores.',
+              style: TextStyle(color: Colors.redAccent)),
+        ),
+      );
+    }
 
     return Scaffold(
       backgroundColor: const Color(0xFF0A1628),
@@ -209,12 +220,12 @@ class _AsignarVeedoresScreenState
       _mensaje = null;
     });
 
-    final useCase = ref.read(asignarVeedorJrvUseCaseProvider);
-    final result = await useCase(
-      veedorId: veedorId,
-      jrvId: _jrvSeleccionada!.id,
-      recintoId: _recintoSeleccionado!.id,
-    );
+    final result = await ref.read(asignarVeedorJrvUseCaseProvider).call(
+          veedorId: veedorId,
+          jrvId: _jrvSeleccionada!.id,
+          recintoId: _recintoSeleccionado!.id,
+          usuarioEjecutor: currentUser!,
+        );
 
     if (!mounted) return;
 

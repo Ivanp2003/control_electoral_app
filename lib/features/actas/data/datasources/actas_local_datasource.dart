@@ -39,7 +39,7 @@ class ActasLocalDatasource {
           id: '${acta.id}_${org.organizacionId}',
           actaId: acta.id,
           organizacionId: org.organizacionId,
-          nombreOrganizacion: org.nombre,
+          nombreOrganizacion: org.nombreOrganizacion,
           votos: org.votos,
         );
         await _db.into(_db.actaDetalleLocal).insert(detalleCompanion, mode: InsertMode.insertOrReplace);
@@ -58,7 +58,7 @@ class ActasLocalDatasource {
 
       final organizaciones = detallesData.map((d) => OrganizacionConVotos(
         organizacionId: d.organizacionId,
-        nombre: d.nombreOrganizacion,
+        nombreOrganizacion: d.nombreOrganizacion,
         votos: d.votos,
       )).toList();
 
