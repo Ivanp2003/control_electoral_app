@@ -1,18 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../auth/presentation/providers/auth_providers.dart';
+import '../../../../core/presentation/widgets/theme_toggle_button.dart';
 import 'seeder_providers.dart';
-
-/// seeder_screen.dart
-///
-/// Responsabilidad Única: Pantalla de ejecución manual del Seeder de datos iniciales.
-/// Accesible únicamente para el Coordinador Provincial (guard en router + use case).
-///
-/// Estados:
-///   idle     → Botón "Cargar datos iniciales" + descripción.
-///   loading  → LinearProgressIndicator + mensaje de progreso granular.
-///   success  → Resumen de documentos creados / banner "ya ejecutado".
-///   error    → Mensaje + botón Reintentar.
 
 class SeederScreen extends ConsumerWidget {
   const SeederScreen({super.key});
@@ -21,23 +11,24 @@ class SeederScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final seederState = ref.watch(seederNotifierProvider);
     final progress = ref.watch(seederProgressProvider);
+    final theme = Theme.of(context);
 
     return Scaffold(
-      backgroundColor: const Color(0xFF0A1628),
+      backgroundColor: theme.scaffoldBackgroundColor,
       appBar: AppBar(
-        backgroundColor: const Color(0xFF0F2442),
         title: const Text(
           'Carga de Datos Iniciales',
-          style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+          style: TextStyle(fontWeight: FontWeight.bold),
         ),
-        iconTheme: const IconThemeData(color: Colors.white),
+        actions: const [
+          ThemeToggleButton(),
+        ],
       ),
       body: Padding(
         padding: const EdgeInsets.all(24),
         child: seederState.when(
           data: (resultado) {
             if (resultado == null) {
-              // Estado idle
               return _IdleState(
                 onExecute: () => _confirmarYEjecutar(context, ref),
               );
@@ -62,31 +53,34 @@ class SeederScreen extends ConsumerWidget {
     final usuario = ref.read(currentUserProvider);
     if (usuario == null) return;
 
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+
     final confirmado = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
-        backgroundColor: const Color(0xFF0F2442),
-        title: const Text('Confirmar carga de datos',
-            style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
-        content: const Text(
+        backgroundColor: theme.cardTheme.color ?? colorScheme.surface,
+        title: Text('Confirmar carga de datos',
+            style: TextStyle(color: colorScheme.onSurface, fontWeight: FontWeight.bold)),
+        content: Text(
           'Se insertarán los datos iniciales de la jerarquía geográfica '
           '(provincia, cantón, parroquias, recintos y JRV) y las organizaciones '
           'políticas en el servidor de Appwrite.\n\n'
           'Esta operación puede tomar varios segundos. ¿Deseas continuar?',
-          style: TextStyle(color: Colors.white70),
+          style: TextStyle(color: colorScheme.onSurface.withOpacity(0.7)),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx, false),
-            child: const Text('Cancelar',
-                style: TextStyle(color: Colors.white54)),
+            child: Text('Cancelar',
+                style: TextStyle(color: colorScheme.onSurface.withOpacity(0.54))),
           ),
           ElevatedButton(
             style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFF4A90D9)),
+                backgroundColor: colorScheme.primary),
             onPressed: () => Navigator.pop(ctx, true),
-            child: const Text('Cargar datos',
-                style: TextStyle(color: Colors.white)),
+            child: Text('Cargar datos',
+                style: TextStyle(color: colorScheme.onPrimary)),
           ),
         ],
       ),
@@ -106,20 +100,23 @@ class _IdleState extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+
     return Column(
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
-        const Icon(Icons.cloud_upload_outlined,
-            size: 80, color: Color(0xFF4A90D9)),
+        Icon(Icons.cloud_upload_outlined,
+            size: 80, color: colorScheme.primary),
         const SizedBox(height: 24),
-        const Text(
+        Text(
           'Carga de Datos Iniciales',
           style: TextStyle(
-              color: Colors.white, fontSize: 22, fontWeight: FontWeight.bold),
+              color: colorScheme.onSurface, fontSize: 22, fontWeight: FontWeight.bold),
           textAlign: TextAlign.center,
         ),
         const SizedBox(height: 12),
-        const Text(
+        Text(
           'Este proceso insertará en Appwrite:\n'
           '• 1 Provincia (Pichincha)\n'
           '• 1 Cantón (Quito)\n'
@@ -127,7 +124,7 @@ class _IdleState extends StatelessWidget {
           '• 8 Recintos electorales\n'
           '• 24 Juntas Receptoras del Voto\n'
           '• 10 Organizaciones políticas',
-          style: TextStyle(color: Colors.white60, fontSize: 14, height: 1.6),
+          style: TextStyle(color: colorScheme.onSurface.withOpacity(0.6), fontSize: 14, height: 1.6),
           textAlign: TextAlign.center,
         ),
         const SizedBox(height: 8),
@@ -154,15 +151,15 @@ class _IdleState extends StatelessWidget {
           height: 52,
           child: ElevatedButton.icon(
             style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(0xFF4A90D9),
-              foregroundColor: Colors.white,
+              backgroundColor: colorScheme.primary,
+              foregroundColor: colorScheme.onPrimary,
               shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(12)),
             ),
             onPressed: onExecute,
             icon: const Icon(Icons.play_arrow_rounded),
-            label: const Text('Cargar datos iniciales',
-                style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+            label: Text('Cargar datos iniciales',
+                style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: colorScheme.onPrimary)),
           ),
         ),
       ],
@@ -176,21 +173,24 @@ class _LoadingState extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+    final surfaceColor = Theme.of(context).cardTheme.color ?? colorScheme.surface;
+
     return Column(
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
-        const Icon(Icons.cloud_sync_outlined,
-            size: 64, color: Color(0xFF4A90D9)),
+        Icon(Icons.cloud_sync_outlined,
+            size: 64, color: colorScheme.primary),
         const SizedBox(height: 24),
-        const Text('Cargando datos...',
+        Text('Cargando datos...',
             style: TextStyle(
-                color: Colors.white,
+                color: colorScheme.onSurface,
                 fontSize: 20,
                 fontWeight: FontWeight.bold)),
         const SizedBox(height: 24),
-        const LinearProgressIndicator(
-          color: Color(0xFF4A90D9),
-          backgroundColor: Color(0xFF0F2442),
+        LinearProgressIndicator(
+          color: colorScheme.primary,
+          backgroundColor: surfaceColor,
           minHeight: 6,
         ),
         const SizedBox(height: 16),
@@ -199,7 +199,7 @@ class _LoadingState extends StatelessWidget {
           child: Text(
             mensaje.isEmpty ? 'Iniciando...' : mensaje,
             key: ValueKey(mensaje),
-            style: const TextStyle(color: Colors.white60, fontSize: 14),
+            style: TextStyle(color: colorScheme.onSurface.withOpacity(0.6), fontSize: 14),
             textAlign: TextAlign.center,
           ),
         ),
@@ -214,16 +214,18 @@ class _SuccessState extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+
     return Column(
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
         const Icon(Icons.check_circle_rounded,
             size: 80, color: Colors.greenAccent),
         const SizedBox(height: 24),
-        const Text(
+        Text(
           '¡Datos cargados exitosamente!',
           style: TextStyle(
-              color: Colors.white, fontSize: 20, fontWeight: FontWeight.bold),
+              color: colorScheme.onSurface, fontSize: 20, fontWeight: FontWeight.bold),
           textAlign: TextAlign.center,
         ),
         const SizedBox(height: 24),
@@ -253,14 +255,16 @@ class _ResumenItem extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 4),
       child: Row(
         children: [
-          Icon(icon, color: const Color(0xFF4A90D9), size: 20),
+          Icon(icon, color: colorScheme.primary, size: 20),
           const SizedBox(width: 12),
           Expanded(child: Text(label,
-              style: const TextStyle(color: Colors.white70))),
+              style: TextStyle(color: colorScheme.onSurface.withOpacity(0.7)))),
           Text('$count creados',
               style: const TextStyle(
                   color: Colors.greenAccent, fontWeight: FontWeight.bold)),
@@ -273,19 +277,21 @@ class _ResumenItem extends StatelessWidget {
 class _YaEjecutadoState extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+
     return Column(
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
         const Icon(Icons.verified_outlined, size: 80, color: Colors.amber),
         const SizedBox(height: 24),
-        const Text('Seeder ya ejecutado',
+        Text('Seeder ya ejecutado',
             style: TextStyle(
-                color: Colors.white, fontSize: 20, fontWeight: FontWeight.bold)),
+                color: colorScheme.onSurface, fontSize: 20, fontWeight: FontWeight.bold)),
         const SizedBox(height: 12),
-        const Text(
+        Text(
           'Los datos iniciales ya fueron cargados previamente en el sistema. '
           'No es necesario ejecutar este proceso nuevamente.',
-          style: TextStyle(color: Colors.white60, fontSize: 14, height: 1.5),
+          style: TextStyle(color: colorScheme.onSurface.withOpacity(0.6), fontSize: 14, height: 1.5),
           textAlign: TextAlign.center,
         ),
       ],
@@ -300,17 +306,18 @@ class _ErrorState extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
     return Column(
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
-        const Icon(Icons.cloud_off_outlined, size: 80, color: Colors.redAccent),
+        Icon(Icons.cloud_off_outlined, size: 80, color: colorScheme.error),
         const SizedBox(height: 24),
-        const Text('Error durante la carga',
+        Text('Error durante la carga',
             style: TextStyle(
-                color: Colors.white, fontSize: 20, fontWeight: FontWeight.bold)),
+                color: colorScheme.onSurface, fontSize: 20, fontWeight: FontWeight.bold)),
         const SizedBox(height: 12),
         Text(mensaje,
-            style: const TextStyle(color: Colors.white54, fontSize: 13),
+            style: TextStyle(color: colorScheme.onSurface.withOpacity(0.54), fontSize: 13),
             textAlign: TextAlign.center),
         const SizedBox(height: 32),
         SizedBox(
@@ -318,15 +325,15 @@ class _ErrorState extends StatelessWidget {
           height: 52,
           child: ElevatedButton.icon(
             style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.redAccent,
-              foregroundColor: Colors.white,
+              backgroundColor: colorScheme.error,
+              foregroundColor: colorScheme.onError,
               shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(12)),
             ),
             onPressed: onRetry,
             icon: const Icon(Icons.refresh_rounded),
-            label: const Text('Reintentar',
-                style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+            label: Text('Reintentar',
+                style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: colorScheme.onError)),
           ),
         ),
       ],

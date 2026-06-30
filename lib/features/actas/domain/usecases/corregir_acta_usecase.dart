@@ -5,6 +5,7 @@ import '../../../../core/validators/acta_validator.dart';
 import '../../../auth/domain/entities/usuario.dart';
 import '../entities/acta.dart';
 import '../repositories/actas_repository.dart';
+import '../../../recintos/domain/repositories/recintos_repository.dart';
 
 /// corregir_acta_usecase.dart
 ///
@@ -13,8 +14,9 @@ import '../repositories/actas_repository.dart';
 
 class CorregirActaUseCase {
   final ActasRepository _repository;
+  final RecintosRepository _recintosRepository;
 
-  CorregirActaUseCase(this._repository);
+  CorregirActaUseCase(this._repository, this._recintosRepository);
 
   Future<Either<Failure, void>> call(Acta actaOriginal, Acta actaCorregida, Usuario usuario) async {
     // 1. Verificar Permisos Globales (AppPermissions)
@@ -26,15 +28,24 @@ class CorregirActaUseCase {
       return const Left(PermissionFailure('No tienes permiso para corregir esta acta.'));
     }
 
-    // 2. Verificar Asignación Veedor-JRV (si es dueño, debe seguir asignado)
+    // 2. Verificar Asignación y Alcance Territorial
     if (puedeComoDueno) {
       final asignado = await _repository.verificarAsignacionVeedor(usuario.id, actaCorregida.jrvId);
       if (!asignado) {
         return const Left(PermissionFailure('Ya no tienes asignada esta JRV.'));
       }
+    } else if (usuario.rol == AppRole.coordinadorRecinto) {
+      final jrvResult = await _recintosRepository.obtenerJrvPorId(actaCorregida.jrvId);
+      if (jrvResult.isLeft()) {
+        return const Left(PermissionFailure('Error al validar JRV.'));
+      }
+      final jrv = jrvResult.fold((l) => null, (r) => r);
+      final recintoResult = await _recintosRepository.obtenerRecintoPorId(jrv!.recintoId);
+      final recinto = recintoResult.fold((l) => null, (r) => r);
+      if (recinto == null || recinto.coordinadorId != usuario.id) {
+        return const Left(PermissionFailure('No puedes corregir actas en un recinto que no te pertenece.'));
+      }
     }
-    // Nota: Si es coordinador, se asume que puede corregir cualquiera del recinto. 
-    // Idealmente, también se verificaría la asignación Coordinador <-> Recinto aquí.
 
     // 3. Validación Matemática Pura
     final resultValidacion = validarActa(

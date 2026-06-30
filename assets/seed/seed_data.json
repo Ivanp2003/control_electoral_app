@@ -2,66 +2,152 @@
   "provincia": "Pichincha",
   "canton": "Quito",
   "parroquias": [
-    "Calderón",
     "Carcelén",
-    "Conocoto",
-    "Tumbaco"
+    "Cotocollao",
+    "Iñaquito",
+    "Chillogallo",
+    "Chimbacalle"
   ],
   "recintos": [
     {
-      "nombre": "Unidad Educativa Calderón",
-      "parroquia": "Calderón",
-      "direccion": "Av. Interoceánica y Calle J, Calderón"
-    },
-    {
-      "nombre": "Colegio Nacional Calderón",
-      "parroquia": "Calderón",
-      "direccion": "Calle Cajabamba N45-120, Calderón"
-    },
-    {
-      "nombre": "Escuela Fiscal Carcelén",
+      "nombre": "Unidad Educativa Atanasio Viteri",
       "parroquia": "Carcelén",
-      "direccion": "Av. La Prensa N80-450, Carcelén"
+      "direccion": "S/N"
     },
     {
-      "nombre": "Unidad Educativa Bicentenario",
+      "nombre": "Unidad Educativa Johannes Kepler",
       "parroquia": "Carcelén",
-      "direccion": "Calle Los Álamos y Eucaliptos, Carcelén"
+      "direccion": "S/N"
     },
     {
-      "nombre": "Colegio Conocoto",
-      "parroquia": "Conocoto",
-      "direccion": "Av. General Enríquez y Calle S, Conocoto"
+      "nombre": "Unidad Educativa Consejo Provincial de Pichincha",
+      "parroquia": "Carcelén",
+      "direccion": "S/N"
     },
     {
-      "nombre": "Unidad Educativa del Valle",
-      "parroquia": "Conocoto",
-      "direccion": "Calle Padre Luis Sodiro N12-78, Conocoto"
+      "nombre": "Unidad Educativa Cotocollao",
+      "parroquia": "Cotocollao",
+      "direccion": "S/N"
     },
     {
-      "nombre": "Escuela Juan Montalvo",
-      "parroquia": "Tumbaco",
-      "direccion": "Av. Oswaldo Guayasamín N3-134, Tumbaco"
+      "nombre": "Unidad Educativa Patrimonio de la Humanidad",
+      "parroquia": "Cotocollao",
+      "direccion": "S/N"
     },
     {
-      "nombre": "Unidad Educativa Tumbaco",
-      "parroquia": "Tumbaco",
-      "direccion": "Calle Chimborazo y Tungurahua, Tumbaco"
+      "nombre": "Unidad Educativa República de Francia",
+      "parroquia": "Cotocollao",
+      "direccion": "S/N"
+    },
+    {
+      "nombre": "Colegio Militar Eloy Alfaro",
+      "parroquia": "Iñaquito",
+      "direccion": "S/N"
+    },
+    {
+      "nombre": "Instituto Luis Napoleón Dillon",
+      "parroquia": "Iñaquito",
+      "direccion": "S/N"
+    },
+    {
+      "nombre": "Unidad Educativa Manuela Cañizares",
+      "parroquia": "Iñaquito",
+      "direccion": "S/N"
+    },
+    {
+      "nombre": "Unidad Educativa Ecuador",
+      "parroquia": "Chillogallo",
+      "direccion": "S/N"
+    },
+    {
+      "nombre": "Unidad Educativa Oswaldo Guayasamín",
+      "parroquia": "Chillogallo",
+      "direccion": "S/N"
+    },
+    {
+      "nombre": "Unidad Educativa Julio Moreno Peñaherrera",
+      "parroquia": "Chillogallo",
+      "direccion": "S/N"
+    },
+    {
+      "nombre": "Unidad Educativa Montúfar",
+      "parroquia": "Chimbacalle",
+      "direccion": "S/N"
+    },
+    {
+      "nombre": "Unidad Educativa Miguel de Santiago",
+      "parroquia": "Chimbacalle",
+      "direccion": "S/N"
+    },
+    {
+      "nombre": "Unidad Educativa Sucre",
+      "parroquia": "Chimbacalle",
+      "direccion": "S/N"
     }
   ],
-  "jrv_por_recinto": 3,
+  "jrv_por_recinto": 6,
   "organizaciones_alcalde": [
-    "ADN Ecuador",
-    "RC5 Revolución Ciudadana",
-    "PSC Partido Social Cristiano",
-    "Construye",
-    "SUMA Sociedad Unida Más Acción"
+    {
+      "lista": 1,
+      "nombre": "Centro Democrático",
+      "candidatoPrincipal": "Omar Cevallos",
+      "candidatoSecundario": ""
+    },
+    {
+      "lista": 2,
+      "nombre": "Unidad Popular",
+      "candidatoPrincipal": "Natasha Rojas",
+      "candidatoSecundario": ""
+    },
+    {
+      "lista": 3,
+      "nombre": "Partido Sociedad Patriótica",
+      "candidatoPrincipal": "Andrés Páez",
+      "candidatoSecundario": ""
+    },
+    {
+      "lista": 5,
+      "nombre": "Revolución Ciudadana",
+      "candidatoPrincipal": "Pabel Muñoz",
+      "candidatoSecundario": ""
+    },
+    {
+      "lista": 6,
+      "nombre": "Partido Social Cristiano",
+      "candidatoPrincipal": "Patricio Alarcón",
+      "candidatoSecundario": ""
+    }
   ],
   "organizaciones_prefecto": [
-    "ADN Ecuador",
-    "RC5 Revolución Ciudadana",
-    "PSC Partido Social Cristiano",
-    "Construye",
-    "SUMA Sociedad Unida Más Acción"
+    {
+      "lista": 1,
+      "nombre": "Centro Democrático",
+      "candidatoPrincipal": "Andrea Hidalgo",
+      "candidatoSecundario": "Pablo Terán"
+    },
+    {
+      "lista": 2,
+      "nombre": "Unidad Popular",
+      "candidatoPrincipal": "Geovanna Benítez",
+      "candidatoSecundario": "Byron Gualotuña"
+    },
+    {
+      "lista": 3,
+      "nombre": "Partido Sociedad Patriótica",
+      "candidatoPrincipal": "Patricio Maldonado",
+      "candidatoSecundario": "Verónica Zurita"
+    },
+    {
+      "lista": 5,
+      "nombre": "Revolución Ciudadana",
+      "candidatoPrincipal": "Paola Pabón",
+      "candidatoSecundario": "Alexandro Tonello"
+    },
+    {
+      "lista": 6,
+      "nombre": "Partido Social Cristiano",
+      "candidatoPrincipal": "Juan Zapata",
+      "candidatoSecundario": "María José Herrera"
+    }
   ]
 }

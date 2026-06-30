@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../providers/auth_providers.dart';
 import '../providers/auth_state.dart';
+import '../../../../core/presentation/widgets/theme_toggle_button.dart';
 
 /// recuperar_password_screen.dart
 /// 
@@ -89,7 +90,7 @@ class _RecuperarPasswordScreenState extends ConsumerState<RecuperarPasswordScree
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
               content: Text(message),
-              backgroundColor: const Color(0xFFDE3B3B),
+              backgroundColor: Theme.of(context).colorScheme.error,
             ),
           );
         },
@@ -102,12 +103,17 @@ class _RecuperarPasswordScreenState extends ConsumerState<RecuperarPasswordScree
       orElse: () => false,
     );
 
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+    final surfaceColor = theme.cardTheme.color ?? colorScheme.surface;
+
     return Scaffold(
-      backgroundColor: const Color(0xFFF7F9FC),
+      backgroundColor: theme.scaffoldBackgroundColor,
       appBar: AppBar(
         title: const Text('Recuperación de Cuenta'),
-        backgroundColor: const Color(0xFF0F4C81),
-        foregroundColor: Colors.white,
+        actions: const [
+          ThemeToggleButton(),
+        ],
       ),
       body: Center(
         child: SingleChildScrollView(
@@ -121,16 +127,16 @@ class _RecuperarPasswordScreenState extends ConsumerState<RecuperarPasswordScree
                 Icon(
                   isConfirming ? Icons.lock_reset : Icons.email_outlined,
                   size: 64,
-                  color: const Color(0xFF0F4C81),
+                  color: colorScheme.primary,
                 ),
                 const SizedBox(height: 16),
                 Text(
                   isConfirming ? 'Defina su Nueva Contraseña' : 'Recuperar Contraseña',
                   textAlign: TextAlign.center,
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 20,
                     fontWeight: FontWeight.bold,
-                    color: Color(0xFF0F4C81),
+                    color: colorScheme.primary,
                   ),
                 ),
                 const SizedBox(height: 8),
@@ -139,18 +145,18 @@ class _RecuperarPasswordScreenState extends ConsumerState<RecuperarPasswordScree
                       ? 'Ingrese y confirme su nueva clave de acceso de 8 caracteres mínimo.'
                       : 'Ingrese su correo electrónico registrado. Le enviaremos un enlace oficial para restablecer su clave.',
                   textAlign: TextAlign.center,
-                  style: const TextStyle(fontSize: 13, color: Colors.grey),
+                  style: TextStyle(fontSize: 13, color: colorScheme.onSurface.withOpacity(0.54)),
                 ),
                 const SizedBox(height: 28),
 
                 Container(
                   padding: const EdgeInsets.all(24),
                   decoration: BoxDecoration(
-                    color: Colors.white,
+                    color: surfaceColor,
                     borderRadius: BorderRadius.circular(16),
                     boxShadow: [
                       BoxShadow(
-                        color: Colors.black.withValues(alpha: 0.05),
+                        color: Colors.black.withOpacity(0.05),
                         blurRadius: 10,
                         offset: const Offset(0, 4),
                       ),
@@ -164,10 +170,10 @@ class _RecuperarPasswordScreenState extends ConsumerState<RecuperarPasswordScree
 
                 TextButton(
                   onPressed: isLoading ? null : () => context.go('/login'),
-                  child: const Text(
+                  child: Text(
                     'Volver al inicio de sesión',
                     style: TextStyle(
-                      color: Color(0xFF0F4C81),
+                      color: Theme.of(context).colorScheme.primary,
                       fontWeight: FontWeight.bold,
                     ),
                   ),
@@ -182,19 +188,19 @@ class _RecuperarPasswordScreenState extends ConsumerState<RecuperarPasswordScree
 
   Widget _buildRequestForm(bool isLoading) {
     if (_linkRequestSent) {
-      return const Column(
+      return Column(
         children: [
-          Icon(Icons.mark_email_read_outlined, color: Colors.green, size: 48),
-          SizedBox(height: 16),
-          Text(
+          const Icon(Icons.mark_email_read_outlined, color: Colors.green, size: 48),
+          const SizedBox(height: 16),
+          const Text(
             'Enlace Enviado',
             style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
           ),
-          SizedBox(height: 8),
+          const SizedBox(height: 8),
           Text(
             'Revise su bandeja de entrada. Siga las instrucciones del correo para restablecer su clave.',
             textAlign: TextAlign.center,
-            style: TextStyle(fontSize: 13, color: Colors.grey),
+            style: TextStyle(fontSize: 13, color: Theme.of(context).colorScheme.onSurface.withOpacity(0.54)),
           ),
         ],
       );
@@ -230,8 +236,8 @@ class _RecuperarPasswordScreenState extends ConsumerState<RecuperarPasswordScree
               ? const Center(child: CircularProgressIndicator())
               : ElevatedButton(
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFF0F4C81),
-                    foregroundColor: Colors.white,
+                    backgroundColor: Theme.of(context).colorScheme.primary,
+                    foregroundColor: Theme.of(context).colorScheme.onPrimary,
                     padding: const EdgeInsets.symmetric(vertical: 14),
                   ),
                   onPressed: _submitRequest,
@@ -253,10 +259,10 @@ class _RecuperarPasswordScreenState extends ConsumerState<RecuperarPasswordScree
             style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
           ),
           const SizedBox(height: 8),
-          const Text(
+          Text(
             'Su clave ha sido actualizada con éxito. Ya puede iniciar sesión.',
             textAlign: TextAlign.center,
-            style: TextStyle(fontSize: 13, color: Colors.grey),
+            style: TextStyle(fontSize: 13, color: Theme.of(context).colorScheme.onSurface.withOpacity(0.54)),
           ),
           const SizedBox(height: 16),
           ElevatedButton(
@@ -341,8 +347,8 @@ class _RecuperarPasswordScreenState extends ConsumerState<RecuperarPasswordScree
               ? const Center(child: CircularProgressIndicator())
               : ElevatedButton(
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFF0F4C81),
-                    foregroundColor: Colors.white,
+                    backgroundColor: Theme.of(context).colorScheme.primary,
+                    foregroundColor: Theme.of(context).colorScheme.onPrimary,
                     padding: const EdgeInsets.symmetric(vertical: 14),
                   ),
                   onPressed: () => _submitConfirmation(userId, secret),

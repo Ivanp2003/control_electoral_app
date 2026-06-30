@@ -1,4 +1,5 @@
 import 'package:riverpod_annotation/riverpod_annotation.dart';
+import '../../../recintos/data/repositories/recintos_repository_impl.dart';
 import '../../../../core/network/appwrite_client.dart';
 import '../../../../core/network/connectivity_service.dart';
 import '../../../../database/app_database.dart';
@@ -33,6 +34,7 @@ ActasRepository actasRepository(ActasRepositoryRef ref) {
   return ActasRepositoryImpl(local, remote, connectivity, db);
 }
 
+
 @riverpod
 ObtenerActasPorJrvUseCase obtenerActasPorJrvUseCase(ObtenerActasPorJrvUseCaseRef ref) {
   final repo = ref.watch(actasRepositoryProvider);
@@ -42,11 +44,13 @@ ObtenerActasPorJrvUseCase obtenerActasPorJrvUseCase(ObtenerActasPorJrvUseCaseRef
 @riverpod
 RegistrarActaUseCase registrarActaUseCase(RegistrarActaUseCaseRef ref) {
   final repo = ref.watch(actasRepositoryProvider);
-  return RegistrarActaUseCase(repo);
+  final recintosRepo = ref.watch(recintosRepositoryProvider);
+  return RegistrarActaUseCase(repo, recintosRepo);
 }
 
 @riverpod
 CorregirActaUseCase corregirActaUseCase(CorregirActaUseCaseRef ref) {
   final repo = ref.watch(actasRepositoryProvider);
-  return CorregirActaUseCase(repo);
+  final recintosRepo = ref.watch(recintosRepositoryProvider);
+  return CorregirActaUseCase(repo, recintosRepo);
 }

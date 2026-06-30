@@ -4,12 +4,17 @@ import '../../domain/usecases/asignar_veedor_jrv_usecase.dart';
 import '../../domain/usecases/listar_usuarios_usecase.dart';
 import '../../data/repositories/usuarios_repository_impl.dart';
 
+import '../../../recintos/data/repositories/recintos_repository_impl.dart';
+
 final listarUsuariosUseCaseProvider = Provider<ListarUsuariosUseCase>((ref) {
   return ListarUsuariosUseCase(ref.watch(usuarioRepositoryProvider));
 });
 
 final asignarVeedorJrvUseCaseProvider = Provider<AsignarVeedorJrvUseCase>((ref) {
-  return AsignarVeedorJrvUseCase(ref.watch(usuarioRepositoryProvider));
+  return AsignarVeedorJrvUseCase(
+    ref.watch(usuarioRepositoryProvider),
+    ref.watch(recintosRepositoryProvider),
+  );
 });
 
 final listarUsuariosProvider = FutureProvider.family<List<Usuario>, String?>((ref, rol) async {

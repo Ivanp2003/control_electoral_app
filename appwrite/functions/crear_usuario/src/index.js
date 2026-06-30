@@ -84,6 +84,7 @@ export default async ({ req, res, log, error }) => {
       if (err.type === 'user_already_exists' || err.code === 409) {
         return res.json({ success: false, error: 'auth_already_exists', message: 'El usuario ya existe en Auth' }, 409);
       }
+      error('Error al crear usuario en Auth: ' + err.message);
       throw err;
     }
 
@@ -115,10 +116,11 @@ export default async ({ req, res, log, error }) => {
       } catch (_) {
         error('Fallo crítico: no se pudo revertir usuario huérfano en Auth.');
       }
-      return res.json({ success: false, error: 'internal_error', message: 'Fallo al crear perfil de usuario en base de datos' }, 500);
+      error('Error en base de datos: ' + dbErr.message);
+      return res.json({ success: false, error: 'internal_error', message: 'Fallo en BD: ' + dbErr.message }, 500);
     }
   } catch (err) {
-    error('Error procesando creación de usuario.');
-    return res.json({ success: false, error: 'internal_error', message: 'Fallo interno en el servidor' }, 500);
+    error('Error procesando creación de usuario: ' + (err.message || err.toString()));
+    return res.json({ success: false, error: 'internal_error', message: 'Fallo interno: ' + (err.message || err.toString()) }, 500);
   }
 };

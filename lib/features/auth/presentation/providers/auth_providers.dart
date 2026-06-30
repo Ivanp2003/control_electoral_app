@@ -24,6 +24,7 @@ import '../../../avance/presentation/screens/avance_electoral_screen.dart';
 import '../../../usuarios/presentation/screens/asignar_coordinador_screen.dart';
 import '../../../usuarios/presentation/screens/asignar_veedores_screen.dart';
 import '../../../usuarios/presentation/screens/crear_usuario_screen.dart';
+import '../../../../core/presentation/widgets/theme_toggle_button.dart';
 import 'auth_state.dart';
 
 part 'auth_providers.g.dart';
@@ -335,19 +336,20 @@ class _HomeScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final usuario = ref.watch(currentUserProvider);
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
 
     return Scaffold(
-      backgroundColor: const Color(0xFF0A1628),
+      backgroundColor: theme.scaffoldBackgroundColor,
       appBar: AppBar(
-        backgroundColor: const Color(0xFF0F2442),
         title: const Text(
           'Control Electoral Ecuador',
-          style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+          style: TextStyle(fontWeight: FontWeight.bold),
         ),
         actions: [
-
+          const ThemeToggleButton(),
           IconButton(
-            icon: const Icon(Icons.logout, color: Colors.white70),
+            icon: const Icon(Icons.logout),
             tooltip: 'Cerrar sesión',
             onPressed: () =>
                 ref.read(authNotifierProvider.notifier).logout(),
@@ -362,12 +364,12 @@ class _HomeScreen extends ConsumerWidget {
             // Saludo
             Text(
               'Bienvenido,',
-              style: TextStyle(color: Colors.white54, fontSize: 14),
+              style: TextStyle(color: colorScheme.onSurface.withOpacity(0.6), fontSize: 14),
             ),
             Text(
               '${usuario?.nombres ?? "Usuario"} ${usuario?.apellidos ?? ""}',
-              style: const TextStyle(
-                  color: Colors.white,
+              style: TextStyle(
+                  color: colorScheme.onSurface,
                   fontSize: 22,
                   fontWeight: FontWeight.bold),
             ),
@@ -375,23 +377,23 @@ class _HomeScreen extends ConsumerWidget {
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
               decoration: BoxDecoration(
-                color: const Color(0xFF4A90D9).withOpacity(0.15),
+                color: colorScheme.primary.withOpacity(0.15),
                 borderRadius: BorderRadius.circular(20),
               ),
               child: Text(
                 usuario?.rol.name ?? '',
-                style: const TextStyle(
-                    color: Color(0xFF4A90D9),
+                style: TextStyle(
+                    color: colorScheme.primary,
                     fontSize: 12,
                     fontWeight: FontWeight.w500),
               ),
             ),
             const SizedBox(height: 32),
             // Accesos rápidos
-            const Text(
+            Text(
               'ACCESOS RÁPIDOS',
               style: TextStyle(
-                  color: Colors.white38,
+                  color: colorScheme.onSurface.withOpacity(0.4),
                   fontSize: 11,
                   letterSpacing: 1.5,
                   fontWeight: FontWeight.bold),
@@ -401,13 +403,13 @@ class _HomeScreen extends ConsumerWidget {
               icon: Icons.map_outlined,
               label: 'Recintos Electorales',
               subtitle: 'Ver jerarquía provincial',
-              onTap: () => context.go('/recintos'),
+              onTap: () => context.push('/recintos'),
             ),
             _NavCard(
               icon: Icons.how_to_vote_outlined,
               label: 'Organizaciones Políticas',
               subtitle: 'Listas por cargo electoral',
-              onTap: () => context.go('/organizaciones'),
+              onTap: () => context.push('/organizaciones'),
             ),
             // Actas — visible para veedores y coordinadores
             if (usuario?.rol == AppRole.veedor ||
@@ -416,13 +418,13 @@ class _HomeScreen extends ConsumerWidget {
                 icon: Icons.how_to_vote_rounded,
                 label: 'Registrar Acta',
                 subtitle: 'Capturar resultados de una JRV',
-                onTap: () => context.go('/actas/registrar'),
+                onTap: () => context.push('/actas/registrar'),
               ),
               _NavCard(
                 icon: Icons.description_outlined,
                 label: 'Mis Actas',
                 subtitle: 'Ver actas registradas',
-                onTap: () => context.go('/actas/mis-actas'),
+                onTap: () => context.push('/actas/mis-actas'),
               ),
             ],
             // Coordinador de Recinto — gestión de veedores
@@ -432,14 +434,14 @@ class _HomeScreen extends ConsumerWidget {
                   icon: Icons.person_add_outlined,
                   label: 'Crear Veedor',
                   subtitle: 'Registrar nuevo veedor en el sistema',
-                  onTap: () => context.go('/usuarios/crear'),
+                  onTap: () => context.push('/usuarios/crear'),
                 ),
               if (AppPermissions.puedeAsignarVeedores(usuario.rol))
                 _NavCard(
                   icon: Icons.people_outline,
                   label: 'Asignar Veedores a JRV',
                   subtitle: 'Vincular veedores con sus mesas',
-                  onTap: () => context.go('/actas/asignar-veedores'),
+                  onTap: () => context.push('/actas/asignar-veedores'),
                 ),
             ],
             // Solo Coordinador Provincial
@@ -448,34 +450,39 @@ class _HomeScreen extends ConsumerWidget {
                 icon: Icons.add_location_alt_outlined,
                 label: 'Crear Recinto',
                 subtitle: 'Registrar nuevo recinto electoral',
-                onTap: () => context.go('/recintos/crear'),
+                onTap: () => context.push('/recintos/crear'),
               ),
               _NavCard(
                 icon: Icons.cloud_upload_outlined,
                 label: 'Carga de Datos Iniciales',
                 subtitle: 'Seeder de jerarquía geográfica',
                 accentColor: Colors.amber,
-                onTap: () => context.go('/seeder'),
+                onTap: () => context.push('/seeder'),
               ),
               if (AppPermissions.puedeConsultarAvance(usuario!.rol))
                 _NavCard(
                   icon: Icons.pie_chart_outline,
                   label: 'Avance Electoral',
                   subtitle: 'Progreso y coordenadas GPS',
-                  onTap: () => context.go('/avance'),
+                  onTap: () => context.push('/avance'),
                 ),
-              if (AppPermissions.puedeAsignarVeedores(usuario.rol))
-                _NavCard(
-                  icon: Icons.people_outline,
-                  label: 'Asignar Coordinador de Recinto',
-                  subtitle: 'Vincular un coordinador a un recinto',
-                  onTap: () => context.go('/usuarios/asignar-coordinador'),
-                ),
+              _NavCard(
+                icon: Icons.people_outline,
+                label: 'Asignar Coordinador de Recinto',
+                subtitle: 'Vincular un coordinador a un recinto',
+                onTap: () => context.push('/usuarios/asignar-coordinador'),
+              ),
+              _NavCard(
+                icon: Icons.people_outline,
+                label: 'Asignar Veedores a JRV',
+                subtitle: 'Vincular veedores con sus mesas',
+                onTap: () => context.push('/actas/asignar-veedores'),
+              ),
               _NavCard(
                 icon: Icons.person_add_outlined,
                 label: 'Crear Usuario',
                 subtitle: 'Registrar veedores y coordinadores',
-                onTap: () => context.go('/usuarios/crear'),
+                onTap: () => context.push('/usuarios/crear'),
               ),
             ],
           ],
@@ -490,22 +497,27 @@ class _NavCard extends StatelessWidget {
   final String label;
   final String subtitle;
   final VoidCallback onTap;
-  final Color accentColor;
+  final Color? accentColor;
 
   const _NavCard({
     required this.icon,
     required this.label,
     required this.subtitle,
     required this.onTap,
-    this.accentColor = const Color(0xFF4A90D9),
+    this.accentColor,
   });
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+    final cardColor = theme.cardTheme.color ?? colorScheme.surface;
+    final effectiveAccent = accentColor ?? colorScheme.primary;
+
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
       child: Material(
-        color: const Color(0xFF0F2442),
+        color: cardColor,
         borderRadius: BorderRadius.circular(14),
         child: InkWell(
           borderRadius: BorderRadius.circular(14),
@@ -518,10 +530,10 @@ class _NavCard extends StatelessWidget {
                   width: 44,
                   height: 44,
                   decoration: BoxDecoration(
-                    color: accentColor.withOpacity(0.15),
+                    color: effectiveAccent.withOpacity(0.15),
                     borderRadius: BorderRadius.circular(10),
                   ),
-                  child: Icon(icon, color: accentColor),
+                  child: Icon(icon, color: effectiveAccent),
                 ),
                 const SizedBox(width: 16),
                 Expanded(
@@ -529,18 +541,18 @@ class _NavCard extends StatelessWidget {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(label,
-                          style: const TextStyle(
-                              color: Colors.white,
+                          style: TextStyle(
+                              color: colorScheme.onSurface,
                               fontSize: 15,
                               fontWeight: FontWeight.w600)),
                       const SizedBox(height: 2),
                       Text(subtitle,
-                          style: const TextStyle(
-                              color: Colors.white38, fontSize: 12)),
+                          style: TextStyle(
+                              color: colorScheme.onSurface.withOpacity(0.6), fontSize: 12)),
                     ],
                   ),
                 ),
-                Icon(Icons.chevron_right_rounded, color: Colors.white24),
+                Icon(Icons.chevron_right_rounded, color: colorScheme.onSurface.withOpacity(0.3)),
               ],
             ),
           ),

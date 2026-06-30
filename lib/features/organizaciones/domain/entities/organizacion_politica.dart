@@ -13,12 +13,19 @@ class OrganizacionPolitica extends Equatable {
   /// Se representa con el enum CargoElectoral definido en appwrite_config.dart.
   final String cargo;
 
+  final int? lista;
+  final String? candidatoPrincipal;
+  final String? candidatoSecundario;
+
   const OrganizacionPolitica({
     required this.id,
     required this.nombre,
     required this.cargo,
+    this.lista,
+    this.candidatoPrincipal,
+    this.candidatoSecundario,
   });
 
   @override
-  List<Object?> get props => [id, nombre, cargo];
+  List<Object?> get props => [id, nombre, cargo, lista, candidatoPrincipal, candidatoSecundario];
 }

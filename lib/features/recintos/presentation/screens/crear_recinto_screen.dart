@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../auth/presentation/providers/auth_providers.dart';
 import '../providers/recintos_providers.dart';
+import '../../../../core/presentation/widgets/theme_toggle_button.dart';
 
 /// crear_recinto_screen.dart
 ///
@@ -38,13 +39,17 @@ class _CrearRecintoScreenState extends ConsumerState<CrearRecintoScreen> {
     final provinciasAsync = ref.watch(provinciasProvider);
     final notifierState = ref.watch(crearRecintoNotifierProvider);
 
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+
     return Scaffold(
-      backgroundColor: const Color(0xFF0A1628),
+      backgroundColor: theme.scaffoldBackgroundColor,
       appBar: AppBar(
-        backgroundColor: const Color(0xFF0F2442),
         title: const Text('Nuevo Recinto Electoral',
-            style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
-        iconTheme: const IconThemeData(color: Colors.white),
+            style: TextStyle(fontWeight: FontWeight.bold)),
+        actions: const [
+          ThemeToggleButton(),
+        ],
       ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(24),
@@ -87,8 +92,7 @@ class _CrearRecintoScreenState extends ConsumerState<CrearRecintoScreen> {
 
               // Dropdown Provincia
               provinciasAsync.when(
-                loading: () => const LinearProgressIndicator(
-                    color: Color(0xFF4A90D9)),
+                loading: () => LinearProgressIndicator(color: colorScheme.primary),
                 error: (e, _) => Text('Error cargando provincias: $e',
                     style: const TextStyle(color: Colors.redAccent)),
                 data: (provincias) => _buildDropdown<String>(
@@ -106,6 +110,7 @@ class _CrearRecintoScreenState extends ConsumerState<CrearRecintoScreen> {
                   }),
                   validator: (v) =>
                       v == null ? 'Seleccione una provincia' : null,
+                  theme: theme,
                 ),
               ),
               const SizedBox(height: 16),
@@ -116,8 +121,7 @@ class _CrearRecintoScreenState extends ConsumerState<CrearRecintoScreen> {
                   final cantonesAsync =
                       ref.watch(cantonesProvider(_provinciaSeleccionadaId!));
                   return cantonesAsync.when(
-                    loading: () => const LinearProgressIndicator(
-                        color: Color(0xFF4A90D9)),
+                    loading: () => LinearProgressIndicator(color: colorScheme.primary),
                     error: (e, _) => Text('Error: $e',
                         style: const TextStyle(color: Colors.redAccent)),
                     data: (cantones) => _buildDropdown<String>(
@@ -134,6 +138,7 @@ class _CrearRecintoScreenState extends ConsumerState<CrearRecintoScreen> {
                       }),
                       validator: (v) =>
                           v == null ? 'Seleccione un cantón' : null,
+                      theme: theme,
                     ),
                   );
                 }),
@@ -146,8 +151,7 @@ class _CrearRecintoScreenState extends ConsumerState<CrearRecintoScreen> {
                   final parroquiasAsync =
                       ref.watch(parroquiasProvider(_cantonSeleccionadoId!));
                   return parroquiasAsync.when(
-                    loading: () => const LinearProgressIndicator(
-                        color: Color(0xFF4A90D9)),
+                    loading: () => LinearProgressIndicator(color: colorScheme.primary),
                     error: (e, _) => Text('Error: $e',
                         style: const TextStyle(color: Colors.redAccent)),
                     data: (parroquias) => _buildDropdown<String>(
@@ -162,6 +166,7 @@ class _CrearRecintoScreenState extends ConsumerState<CrearRecintoScreen> {
                           setState(() => _parroquiaSeleccionadaId = v),
                       validator: (v) =>
                           v == null ? 'Seleccione una parroquia' : null,
+                      theme: theme,
                     ),
                   );
                 }),
@@ -173,13 +178,13 @@ class _CrearRecintoScreenState extends ConsumerState<CrearRecintoScreen> {
                 Container(
                   padding: const EdgeInsets.all(12),
                   decoration: BoxDecoration(
-                    color: Colors.red.withOpacity(0.1),
+                    color: colorScheme.error.withOpacity(0.1),
                     borderRadius: BorderRadius.circular(8),
-                    border: Border.all(color: Colors.redAccent),
+                    border: Border.all(color: colorScheme.error.withOpacity(0.4)),
                   ),
                   child: Text(
                     notifierState.error.toString(),
-                    style: const TextStyle(color: Colors.redAccent),
+                    style: TextStyle(color: colorScheme.error),
                   ),
                 ),
 
@@ -190,24 +195,24 @@ class _CrearRecintoScreenState extends ConsumerState<CrearRecintoScreen> {
                 height: 52,
                 child: ElevatedButton.icon(
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFF4A90D9),
-                    foregroundColor: Colors.white,
+                    backgroundColor: colorScheme.primary,
+                    foregroundColor: colorScheme.onPrimary,
                     shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(12)),
                   ),
                   onPressed:
                       notifierState is AsyncLoading ? null : _guardarRecinto,
                   icon: notifierState is AsyncLoading
-                      ? const SizedBox(
+                      ? SizedBox(
                           width: 18,
                           height: 18,
                           child: CircularProgressIndicator(
-                              color: Colors.white, strokeWidth: 2))
+                              color: colorScheme.onPrimary, strokeWidth: 2))
                       : const Icon(Icons.save_outlined),
                   label: Text(
                     notifierState is AsyncLoading ? 'Guardando...' : 'Guardar Recinto',
-                    style: const TextStyle(
-                        fontSize: 16, fontWeight: FontWeight.bold),
+                    style: TextStyle(
+                        fontSize: 16, fontWeight: FontWeight.bold, color: colorScheme.onPrimary),
                   ),
                 ),
               ),
@@ -267,8 +272,8 @@ class _CrearRecintoScreenState extends ConsumerState<CrearRecintoScreen> {
   Widget _buildSectionHeader(String title) {
     return Text(
       title,
-      style: const TextStyle(
-          color: Color(0xFF4A90D9),
+      style: TextStyle(
+          color: Theme.of(context).colorScheme.primary,
           fontSize: 14,
           fontWeight: FontWeight.bold,
           letterSpacing: 1.2),
@@ -283,30 +288,34 @@ class _CrearRecintoScreenState extends ConsumerState<CrearRecintoScreen> {
     required IconData icon,
     String? Function(String?)? validator,
   }) {
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+    final surfaceColor = theme.cardTheme.color ?? colorScheme.surface;
+
     return TextFormField(
       key: Key(id),
       controller: controller,
-      style: const TextStyle(color: Colors.white),
+      style: TextStyle(color: colorScheme.onSurface),
       validator: validator,
       decoration: InputDecoration(
         labelText: label,
         hintText: hint,
-        labelStyle: const TextStyle(color: Colors.white54),
-        hintStyle: const TextStyle(color: Colors.white24),
-        prefixIcon: Icon(icon, color: const Color(0xFF4A90D9)),
+        labelStyle: TextStyle(color: colorScheme.onSurface.withOpacity(0.54)),
+        hintStyle: TextStyle(color: colorScheme.onSurface.withOpacity(0.24)),
+        prefixIcon: Icon(icon, color: colorScheme.primary),
         filled: true,
-        fillColor: const Color(0xFF0F2442),
+        fillColor: surfaceColor,
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(10),
-          borderSide: const BorderSide(color: Colors.white12),
+          borderSide: BorderSide(color: colorScheme.onSurface.withOpacity(0.12)),
         ),
         enabledBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(10),
-          borderSide: const BorderSide(color: Colors.white12),
+          borderSide: BorderSide(color: colorScheme.onSurface.withOpacity(0.12)),
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(10),
-          borderSide: const BorderSide(color: Color(0xFF4A90D9)),
+          borderSide: BorderSide(color: colorScheme.primary),
         ),
       ),
     );
@@ -319,31 +328,35 @@ class _CrearRecintoScreenState extends ConsumerState<CrearRecintoScreen> {
     required List<DropdownMenuItem<T>> items,
     required void Function(T?) onChanged,
     String? Function(T?)? validator,
+    required ThemeData theme,
   }) {
+    final colorScheme = theme.colorScheme;
+    final surfaceColor = theme.cardTheme.color ?? colorScheme.surface;
+
     return DropdownButtonFormField<T>(
       key: Key(id),
       value: value,
       items: items,
       onChanged: onChanged,
       validator: validator,
-      style: const TextStyle(color: Colors.white),
-      dropdownColor: const Color(0xFF0F2442),
+      style: TextStyle(color: colorScheme.onSurface),
+      dropdownColor: surfaceColor,
       decoration: InputDecoration(
         labelText: label,
-        labelStyle: const TextStyle(color: Colors.white54),
+        labelStyle: TextStyle(color: colorScheme.onSurface.withOpacity(0.54)),
         filled: true,
-        fillColor: const Color(0xFF0F2442),
+        fillColor: surfaceColor,
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(10),
-          borderSide: const BorderSide(color: Colors.white12),
+          borderSide: BorderSide(color: colorScheme.onSurface.withOpacity(0.12)),
         ),
         enabledBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(10),
-          borderSide: const BorderSide(color: Colors.white12),
+          borderSide: BorderSide(color: colorScheme.onSurface.withOpacity(0.12)),
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(10),
-          borderSide: const BorderSide(color: Color(0xFF4A90D9)),
+          borderSide: BorderSide(color: colorScheme.primary),
         ),
       ),
     );

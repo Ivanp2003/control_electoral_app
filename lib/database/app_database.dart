@@ -99,6 +99,7 @@ class RecintosLocal extends Table {
   TextColumn get direccion => text()();
   RealColumn get latRef => real().nullable()();
   RealColumn get lonRef => real().nullable()();
+  TextColumn get coordinadorId => text().nullable()();
 
   @override
   Set<Column> get primaryKey => {id};
@@ -121,6 +122,10 @@ class OrganizacionesLocal extends Table {
 
   /// Cargo electoral: 'alcalde' o 'prefecto'.
   TextColumn get cargo => text()();
+
+  IntColumn get lista => integer().nullable()();
+  TextColumn get candidatoPrincipal => text().nullable()();
+  TextColumn get candidatoSecundario => text().nullable()();
 
   @override
   Set<Column> get primaryKey => {id};
@@ -187,26 +192,35 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase() : super(_openConnection());
 
   @override
-  int get schemaVersion => 3;
+  int get schemaVersion => 5;
 
   @override
   MigrationStrategy get migration {
     return MigrationStrategy(
-      onUpgrade: (migrator, from, to) async {
-        // v1 → v2: Agregar tablas de jerarquía geográfica y configuración.
+      onCreate: (Migrator m) async {
+        await m.createAll();
+      },
+      onUpgrade: (Migrator m, int from, int to) async {
         if (from < 2) {
-          await migrator.createTable(provinciasLocal);
-          await migrator.createTable(cantonesLocal);
-          await migrator.createTable(parroquiasLocal);
-          await migrator.createTable(recintosLocal);
-          await migrator.createTable(jrvLocal);
-          await migrator.createTable(organizacionesLocal);
-          await migrator.createTable(configSistemaLocal);
+          await m.createTable(provinciasLocal);
+          await m.createTable(cantonesLocal);
+          await m.createTable(parroquiasLocal);
+          await m.createTable(recintosLocal);
+          await m.createTable(jrvLocal);
+          await m.createTable(organizacionesLocal);
+          await m.createTable(configSistemaLocal);
         }
-        // v2 → v3: Agregar tablas de Fase 4.
         if (from < 3) {
-          await migrator.createTable(actaDetalleLocal);
-          await migrator.createTable(veedorJrvLocal);
+          await m.createTable(actaDetalleLocal);
+          await m.createTable(veedorJrvLocal);
+        }
+        if (from < 4) {
+          await m.addColumn(recintosLocal, recintosLocal.coordinadorId);
+        }
+        if (from < 5) {
+          await m.addColumn(organizacionesLocal, organizacionesLocal.lista);
+          await m.addColumn(organizacionesLocal, organizacionesLocal.candidatoPrincipal);
+          await m.addColumn(organizacionesLocal, organizacionesLocal.candidatoSecundario);
         }
       },
     );
@@ -302,6 +316,9 @@ class AppDatabase extends _$AppDatabase {
             ..where((t) => t.parroquiaId.equals(parroquiaId)))
           .get();
 
+  Future<RecintosLocalData?> obtenerRecintoLocalPorId(String id) =>
+      (select(recintosLocal)..where((t) => t.id.equals(id))).getSingleOrNull();
+
   Future<int> guardarRecintoLocal(RecintosLocalCompanion companion) =>
       into(recintosLocal).insert(companion, mode: InsertMode.insertOrReplace);
 
@@ -313,6 +330,9 @@ class AppDatabase extends _$AppDatabase {
 
   Future<List<JrvLocalData>> obtenerJrvLocal(String recintoId) =>
       (select(jrvLocal)..where((t) => t.recintoId.equals(recintoId))).get();
+
+  Future<JrvLocalData?> obtenerJrvLocalPorId(String id) =>
+      (select(jrvLocal)..where((t) => t.id.equals(id))).getSingleOrNull();
 
   Future<int> guardarJrvLocal(JrvLocalCompanion companion) =>
       into(jrvLocal).insert(companion, mode: InsertMode.insertOrReplace);

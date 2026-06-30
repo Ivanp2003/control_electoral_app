@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'package:drift/drift.dart' hide Column;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../../../core/presentation/widgets/theme_toggle_button.dart';
 import '../../../../core/validators/cedula_validator.dart';
 import '../../../../database/app_database.dart';
 
@@ -29,14 +30,18 @@ class _AsignarCoordinadorScreenState
   @override
   Widget build(BuildContext context) {
     final db = ref.read(appDatabaseProvider);
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+    final surfaceColor = theme.cardTheme.color ?? colorScheme.surface;
 
     return Scaffold(
-      backgroundColor: const Color(0xFF0A1628),
+      backgroundColor: theme.scaffoldBackgroundColor,
       appBar: AppBar(
-        backgroundColor: const Color(0xFF0F2442),
         title: const Text('Asignar Coordinador',
-            style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
-        iconTheme: const IconThemeData(color: Colors.white),
+            style: TextStyle(fontWeight: FontWeight.bold)),
+        actions: const [
+          ThemeToggleButton(),
+        ],
       ),
       body: Column(
         children: [
@@ -44,14 +49,14 @@ class _AsignarCoordinadorScreenState
             padding: const EdgeInsets.all(16),
             child: TextField(
               controller: _searchCtrl,
-              style: const TextStyle(color: Colors.white),
+              style: TextStyle(color: colorScheme.onSurface),
               decoration: InputDecoration(
                 hintText: 'Buscar recinto...',
-                hintStyle: const TextStyle(color: Colors.white38),
+                hintStyle: TextStyle(color: colorScheme.onSurface.withOpacity(0.38)),
                 prefixIcon:
-                    const Icon(Icons.search, color: Colors.white38),
+                    Icon(Icons.search, color: colorScheme.onSurface.withOpacity(0.38)),
                 filled: true,
-                fillColor: const Color(0xFF0F2442),
+                fillColor: surfaceColor,
                 border: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(12),
                     borderSide: BorderSide.none),
@@ -79,9 +84,9 @@ class _AsignarCoordinadorScreenState
               future: db.obtenerTodasLasRecintos(),
               builder: (context, snapshot) {
                 if (!snapshot.hasData) {
-                  return const Center(
+                  return Center(
                       child: CircularProgressIndicator(
-                          color: Color(0xFF4A90D9)));
+                          color: colorScheme.primary));
                 }
                 final filtro = _searchCtrl.text.toLowerCase();
                 final recintos = snapshot.data!
@@ -91,9 +96,9 @@ class _AsignarCoordinadorScreenState
                     .toList();
 
                 if (recintos.isEmpty) {
-                  return const Center(
+                  return Center(
                     child: Text('No se encontraron recintos.',
-                        style: TextStyle(color: Colors.white54)),
+                        style: TextStyle(color: colorScheme.onSurface.withOpacity(0.54))),
                   );
                 }
                 return ListView.builder(
@@ -106,25 +111,25 @@ class _AsignarCoordinadorScreenState
                         _recintoSeleccionado?.id == r.id;
                     return Card(
                       color: seleccionado
-                          ? const Color(0xFF1A3A5C)
-                          : const Color(0xFF0F2442),
+                          ? colorScheme.primary.withOpacity(0.2)
+                          : surfaceColor,
                       margin:
                           const EdgeInsets.only(bottom: 8),
                       child: ListTile(
                         title: Text(r.nombre,
-                            style: const TextStyle(
-                                color: Colors.white,
+                            style: TextStyle(
+                                color: colorScheme.onSurface,
                                 fontWeight: FontWeight.w500)),
                         subtitle: Text('ID: ${r.id}',
-                            style: const TextStyle(
-                                color: Colors.white38,
+                            style: TextStyle(
+                                color: colorScheme.onSurface.withOpacity(0.38),
                                 fontSize: 12)),
                         trailing: seleccionado
-                            ? const Icon(Icons.check_circle,
-                                color: Color(0xFF4A90D9))
+                            ? Icon(Icons.check_circle,
+                                color: colorScheme.primary)
                             : null,
                         onTap: () =>
-                            _mostrarDialogoCedula(context, r),
+                            _mostrarDialogoCedula(context, r, colorScheme, surfaceColor, theme.scaffoldBackgroundColor),
                       ),
                     );
                   },
@@ -138,31 +143,31 @@ class _AsignarCoordinadorScreenState
   }
 
   void _mostrarDialogoCedula(
-      BuildContext context, RecintosLocalData recinto) {
+      BuildContext context, RecintosLocalData recinto, ColorScheme colorScheme, Color surfaceColor, Color scaffoldBg) {
     final cedulaCtrl = TextEditingController();
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
-        backgroundColor: const Color(0xFF0F2442),
-        title: const Text('Asignar Coordinador',
-            style: TextStyle(color: Colors.white)),
+        backgroundColor: surfaceColor,
+        title: Text('Asignar Coordinador',
+            style: TextStyle(color: colorScheme.onSurface)),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
             Text('Recinto: ${recinto.nombre}',
-                style: const TextStyle(color: Colors.white70)),
+                style: TextStyle(color: colorScheme.onSurface.withOpacity(0.7))),
             const SizedBox(height: 16),
             TextField(
               controller: cedulaCtrl,
               maxLength: 10,
               keyboardType: TextInputType.number,
-              style: const TextStyle(color: Colors.white),
-              decoration: const InputDecoration(
+              style: TextStyle(color: colorScheme.onSurface),
+              decoration: InputDecoration(
                 labelText: 'Cédula del coordinador',
-                labelStyle: TextStyle(color: Colors.white54),
+                labelStyle: TextStyle(color: colorScheme.onSurface.withOpacity(0.54)),
                 filled: true,
-                fillColor: Color(0xFF0A1628),
-                border: OutlineInputBorder(
+                fillColor: scaffoldBg,
+                border: const OutlineInputBorder(
                     borderSide: BorderSide.none),
               ),
             ),
@@ -171,13 +176,13 @@ class _AsignarCoordinadorScreenState
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx),
-            child: const Text('Cancelar',
-                style: TextStyle(color: Colors.white54)),
+            child: Text('Cancelar',
+                style: TextStyle(color: colorScheme.onSurface.withOpacity(0.54))),
           ),
           ElevatedButton(
             style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(0xFF4A90D9),
-              foregroundColor: Colors.white,
+              backgroundColor: colorScheme.primary,
+              foregroundColor: colorScheme.onPrimary,
             ),
             onPressed: () {
               final cedula = cedulaCtrl.text.trim();

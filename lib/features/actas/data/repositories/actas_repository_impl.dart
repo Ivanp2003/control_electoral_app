@@ -4,10 +4,10 @@ import 'package:drift/drift.dart';
 import '../../../../core/errors/failures.dart';
 import '../../../../core/network/connectivity_service.dart';
 import '../../../../database/app_database.dart';
-import '../domain/entities/acta.dart';
-import '../domain/repositories/actas_repository.dart';
-import 'datasources/actas_local_datasource.dart';
-import 'datasources/actas_remote_datasource.dart';
+import '../../domain/entities/acta.dart';
+import '../../domain/repositories/actas_repository.dart';
+import '../datasources/actas_local_datasource.dart';
+import '../datasources/actas_remote_datasource.dart';
 
 /// actas_repository_impl.dart
 ///
@@ -40,20 +40,23 @@ class ActasRepositoryImpl implements ActasRepository {
   Future<Either<Failure, void>> registrarActa(Acta acta) async {
     try {
       final isOnline = await _connectivity.isConnected;
+      
+      final deterministicId = 'acta_${acta.jrvId}_${acta.cargoElectoral.toLowerCase()}';
+      final actaToSave = _marcarComoSynced(acta, false).copyWith(id: deterministicId);
 
       if (isOnline) {
         try {
-          await _remoteDatasource.registrarActa(acta);
+          await _remoteDatasource.registrarActa(actaToSave);
           // Si tiene éxito en remoto, guardar localmente como sincronizado
-          final syncedActa = _marcarComoSynced(acta, true);
+          final syncedActa = _marcarComoSynced(actaToSave, true);
           await _localDatasource.guardarActaLocal(syncedActa);
           return const Right(null);
         } catch (e) {
           // Si falla remoto (ej. error 500 temporal), caer al fallback offline
-          return await _guardarOfflineEnCola(acta, 'CREATE');
+          return await _guardarOfflineEnCola(actaToSave, 'CREATE');
         }
       } else {
-        return await _guardarOfflineEnCola(acta, 'CREATE');
+        return await _guardarOfflineEnCola(actaToSave, 'CREATE');
       }
     } catch (e) {
       return Left(CacheFailure('Error al registrar el acta: $e'));

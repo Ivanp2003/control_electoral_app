@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../providers/auth_providers.dart';
 import '../providers/auth_state.dart';
+import '../../../../core/presentation/widgets/theme_toggle_button.dart';
 
 /// cambiar_password_screen.dart
 /// 
@@ -62,7 +63,7 @@ class _CambiarPasswordScreenState extends ConsumerState<CambiarPasswordScreen> {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
               content: Text(message),
-              backgroundColor: const Color(0xFFDE3B3B),
+              backgroundColor: Theme.of(context).colorScheme.error,
             ),
           );
         },
@@ -75,13 +76,18 @@ class _CambiarPasswordScreenState extends ConsumerState<CambiarPasswordScreen> {
       orElse: () => false,
     );
 
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+    final surfaceColor = theme.cardTheme.color ?? colorScheme.surface;
+
     return Scaffold(
-      backgroundColor: const Color(0xFFFFF9F9), // Tono de advertencia sutil
+      backgroundColor: theme.scaffoldBackgroundColor, // Tono de advertencia sutil
       appBar: AppBar(
         title: const Text('Actualización de Contraseña'),
         automaticallyImplyLeading: false, // Bloquear volver atrás
-        backgroundColor: const Color(0xFFDE3B3B),
-        foregroundColor: Colors.white,
+        actions: const [
+          ThemeToggleButton(),
+        ],
       ),
       body: Center(
         child: SingleChildScrollView(
@@ -92,37 +98,37 @@ class _CambiarPasswordScreenState extends ConsumerState<CambiarPasswordScreen> {
               mainAxisAlignment: MainAxisAlignment.center,
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                const Icon(
+                Icon(
                   Icons.security_outlined,
                   size: 64,
-                  color: Color(0xFFDE3B3B),
+                  color: colorScheme.error,
                 ),
                 const SizedBox(height: 16),
-                const Text(
+                Text(
                   'Cambio Obligatorio de Contraseña',
                   textAlign: TextAlign.center,
                   style: TextStyle(
                     fontSize: 20,
                     fontWeight: FontWeight.bold,
-                    color: Color(0xFFDE3B3B),
+                    color: colorScheme.error,
                   ),
                 ),
                 const SizedBox(height: 8),
-                const Text(
+                Text(
                   'Por seguridad, debe cambiar la contraseña inicial temporal "Ecuador2026" asignada por su administrador antes de poder operar en el sistema.',
                   textAlign: TextAlign.center,
-                  style: TextStyle(fontSize: 13, color: Colors.grey),
+                  style: TextStyle(fontSize: 13, color: colorScheme.onSurface.withOpacity(0.54)),
                 ),
                 const SizedBox(height: 28),
 
                 Container(
                   padding: const EdgeInsets.all(24),
                   decoration: BoxDecoration(
-                    color: Colors.white,
+                    color: surfaceColor,
                     borderRadius: BorderRadius.circular(16),
                     boxShadow: [
                       BoxShadow(
-                        color: Colors.black.withValues(alpha: 0.05),
+                        color: Colors.black.withOpacity(0.05),
                         blurRadius: 10,
                         offset: const Offset(0, 4),
                       ),
@@ -234,8 +240,8 @@ class _CambiarPasswordScreenState extends ConsumerState<CambiarPasswordScreen> {
                             ? const Center(child: CircularProgressIndicator())
                             : ElevatedButton(
                                 style: ElevatedButton.styleFrom(
-                                  backgroundColor: const Color(0xFFDE3B3B),
-                                  foregroundColor: Colors.white,
+                                  backgroundColor: colorScheme.primary,
+                                  foregroundColor: colorScheme.onPrimary,
                                   padding: const EdgeInsets.symmetric(vertical: 14),
                                   shape: RoundedRectangleBorder(
                                     borderRadius: BorderRadius.circular(8),
@@ -243,7 +249,7 @@ class _CambiarPasswordScreenState extends ConsumerState<CambiarPasswordScreen> {
                                 ),
                                 onPressed: _submit,
                                 child: const Text(
-                                  'Actualizar y Entrar',
+                                  'Actualizar Contraseña',
                                   style: TextStyle(
                                     fontSize: 16,
                                     fontWeight: FontWeight.bold,

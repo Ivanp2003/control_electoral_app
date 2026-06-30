@@ -1,9 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../../../core/constants/app_roles.dart';
+import '../../../../core/presentation/widgets/theme_toggle_button.dart';
 import '../../../../database/app_database.dart';
 import '../../../auth/domain/entities/usuario.dart';
 import '../../../auth/presentation/providers/auth_providers.dart';
-import '../../../../core/constants/app_roles.dart';
 import '../providers/usuarios_providers.dart';
 
 class AsignarVeedoresScreen extends ConsumerStatefulWidget {
@@ -26,36 +27,40 @@ class _AsignarVeedoresScreenState
     final usuario = ref.watch(currentUserProvider);
     final db = ref.read(appDatabaseProvider);
     final veedoresAsync = ref.watch(listarUsuariosProvider('veedor'));
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+    final surfaceColor = theme.cardTheme.color ?? colorScheme.surface;
 
     if (usuario == null || !AppPermissions.puedeAsignarVeedores(usuario.rol)) {
-      return const Scaffold(
-        backgroundColor: Color(0xFF0A1628),
+      return Scaffold(
+        backgroundColor: theme.scaffoldBackgroundColor,
         body: Center(
           child: Text('No tienes permisos para asignar veedores.',
-              style: TextStyle(color: Colors.redAccent)),
+              style: TextStyle(color: colorScheme.error)),
         ),
       );
     }
 
     return Scaffold(
-      backgroundColor: const Color(0xFF0A1628),
+      backgroundColor: theme.scaffoldBackgroundColor,
       appBar: AppBar(
-        backgroundColor: const Color(0xFF0F2442),
         title: const Text('Asignar Veedores',
-            style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
-        iconTheme: const IconThemeData(color: Colors.white),
+            style: TextStyle(fontWeight: FontWeight.bold)),
+        actions: const [
+          ThemeToggleButton(),
+        ],
       ),
       body: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Padding(
             padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
-            child: _seleccionarRecinto(db),
+            child: _seleccionarRecinto(db, colorScheme, surfaceColor),
           ),
           if (_recintoSeleccionado != null) ...[
             Padding(
               padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
-              child: _seleccionarJrv(db),
+              child: _seleccionarJrv(db, colorScheme, surfaceColor),
             ),
           ],
           if (_mensaje != null)
@@ -73,7 +78,7 @@ class _AsignarVeedoresScreenState
           if (_jrvSeleccionada != null) ...[
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-              child: _buildAsignarSeccion(veedoresAsync, usuario),
+              child: _buildAsignarSeccion(veedoresAsync, usuario, colorScheme, surfaceColor),
             ),
           ],
         ],
@@ -81,24 +86,24 @@ class _AsignarVeedoresScreenState
     );
   }
 
-  Widget _seleccionarRecinto(AppDatabase db) {
+  Widget _seleccionarRecinto(AppDatabase db, ColorScheme colorScheme, Color surfaceColor) {
     return FutureBuilder<List<RecintosLocalData>>(
       future: db.obtenerTodasLasRecintos(),
       builder: (context, snapshot) {
         if (!snapshot.hasData || snapshot.data!.isEmpty) {
-          return const Text('No hay recintos disponibles.',
-              style: TextStyle(color: Colors.white54));
+          return Text('No hay recintos disponibles.',
+              style: TextStyle(color: colorScheme.onSurface.withOpacity(0.54)));
         }
         return DropdownButtonFormField<RecintosLocalData>(
           value: _recintoSeleccionado,
-          dropdownColor: const Color(0xFF0F2442),
-          style: const TextStyle(color: Colors.white),
-          decoration: const InputDecoration(
+          dropdownColor: surfaceColor,
+          style: TextStyle(color: colorScheme.onSurface),
+          decoration: InputDecoration(
             labelText: 'Seleccionar Recinto',
-            labelStyle: TextStyle(color: Colors.white54),
+            labelStyle: TextStyle(color: colorScheme.onSurface.withOpacity(0.54)),
             filled: true,
-            fillColor: Color(0xFF0F2442),
-            border: OutlineInputBorder(borderSide: BorderSide.none),
+            fillColor: surfaceColor,
+            border: const OutlineInputBorder(borderSide: BorderSide.none),
           ),
           items: snapshot.data!.map((r) {
             return DropdownMenuItem(
@@ -114,24 +119,24 @@ class _AsignarVeedoresScreenState
     );
   }
 
-  Widget _seleccionarJrv(AppDatabase db) {
+  Widget _seleccionarJrv(AppDatabase db, ColorScheme colorScheme, Color surfaceColor) {
     return FutureBuilder<List<JrvLocalData>>(
       future: db.obtenerJrvLocal(_recintoSeleccionado!.id),
       builder: (context, snapshot) {
         if (!snapshot.hasData || snapshot.data!.isEmpty) {
-          return const Text('No hay JRV en este recinto.',
-              style: TextStyle(color: Colors.white54));
+          return Text('No hay JRV en este recinto.',
+              style: TextStyle(color: colorScheme.onSurface.withOpacity(0.54)));
         }
         return DropdownButtonFormField<JrvLocalData>(
           value: _jrvSeleccionada,
-          dropdownColor: const Color(0xFF0F2442),
-          style: const TextStyle(color: Colors.white),
-          decoration: const InputDecoration(
+          dropdownColor: surfaceColor,
+          style: TextStyle(color: colorScheme.onSurface),
+          decoration: InputDecoration(
             labelText: 'Seleccionar JRV',
-            labelStyle: TextStyle(color: Colors.white54),
+            labelStyle: TextStyle(color: colorScheme.onSurface.withOpacity(0.54)),
             filled: true,
-            fillColor: Color(0xFF0F2442),
-            border: OutlineInputBorder(borderSide: BorderSide.none),
+            fillColor: surfaceColor,
+            border: const OutlineInputBorder(borderSide: BorderSide.none),
           ),
           items: snapshot.data!.map((j) {
             return DropdownMenuItem(
@@ -147,26 +152,26 @@ class _AsignarVeedoresScreenState
   }
 
   Widget _buildAsignarSeccion(
-      AsyncValue<List<Usuario>> veedoresAsync, Usuario? currentUser) {
+      AsyncValue<List<Usuario>> veedoresAsync, Usuario? currentUser, ColorScheme colorScheme, Color surfaceColor) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Text('VEEDORES DISPONIBLES',
+        Text('VEEDORES DISPONIBLES',
             style: TextStyle(
-                color: Colors.white38,
+                color: colorScheme.onSurface.withOpacity(0.38),
                 fontSize: 11,
                 letterSpacing: 1.5)),
         const SizedBox(height: 8),
         veedoresAsync.when(
-          loading: () => const Center(
+          loading: () => Center(
               child:
-                  CircularProgressIndicator(color: Color(0xFF4A90D9))),
+                  CircularProgressIndicator(color: colorScheme.primary)),
           error: (e, _) => Text('Error: $e',
-              style: const TextStyle(color: Colors.redAccent)),
+              style: TextStyle(color: colorScheme.error)),
           data: (veedores) {
             if (veedores.isEmpty) {
-              return const Text('No hay veedores registrados.',
-                  style: TextStyle(color: Colors.white54));
+              return Text('No hay veedores registrados.',
+                  style: TextStyle(color: colorScheme.onSurface.withOpacity(0.54)));
             }
             return SizedBox(
               height: 300,
@@ -175,28 +180,28 @@ class _AsignarVeedoresScreenState
                 itemBuilder: (_, i) {
                   final v = veedores[i];
                   return Card(
-                    color: const Color(0xFF0F2442),
+                    color: surfaceColor,
                     margin: const EdgeInsets.only(bottom: 6),
                     child: ListTile(
                       dense: true,
-                      leading: const Icon(Icons.person_outline,
-                          color: Color(0xFF4A90D9)),
+                      leading: Icon(Icons.person_outline,
+                          color: colorScheme.primary),
                       title: Text('${v.nombres} ${v.apellidos}',
-                          style: const TextStyle(
-                              color: Colors.white, fontSize: 14)),
+                          style: TextStyle(
+                              color: colorScheme.onSurface, fontSize: 14)),
                       subtitle: Text('C.I.: ${v.cedula}',
-                          style: const TextStyle(
-                              color: Colors.white38, fontSize: 12)),
+                          style: TextStyle(
+                              color: colorScheme.onSurface.withOpacity(0.38), fontSize: 12)),
                       trailing: _asignando
-                          ? const SizedBox(
+                          ? SizedBox(
                               width: 20,
                               height: 20,
                               child: CircularProgressIndicator(
                                   strokeWidth: 2,
-                                  color: Color(0xFF4A90D9)))
+                                  color: colorScheme.primary))
                           : IconButton(
-                              icon: const Icon(Icons.person_add,
-                                  color: Color(0xFF4A90D9)),
+                              icon: Icon(Icons.person_add,
+                                  color: colorScheme.primary),
                               onPressed: () =>
                                   _asignarVeedor(v.id, currentUser),
                             ),

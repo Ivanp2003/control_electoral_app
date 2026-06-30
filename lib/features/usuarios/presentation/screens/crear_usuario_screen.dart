@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/constants/app_roles.dart';
+import '../../../../core/presentation/widgets/theme_toggle_button.dart';
 import '../../../../core/validators/cedula_validator.dart';
 import '../../../auth/presentation/providers/auth_providers.dart';
 
@@ -35,14 +36,18 @@ class _CrearUsuarioScreenState extends ConsumerState<CrearUsuarioScreen> {
   @override
   Widget build(BuildContext context) {
     final usuario = ref.watch(currentUserProvider);
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+    final surfaceColor = theme.cardTheme.color ?? colorScheme.surface;
 
     return Scaffold(
-      backgroundColor: const Color(0xFF0A1628),
+      backgroundColor: theme.scaffoldBackgroundColor,
       appBar: AppBar(
-        backgroundColor: const Color(0xFF0F2442),
         title: const Text('Crear Usuario',
-            style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
-        iconTheme: const IconThemeData(color: Colors.white),
+            style: TextStyle(fontWeight: FontWeight.bold)),
+        actions: const [
+          ThemeToggleButton(),
+        ],
       ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(16),
@@ -51,34 +56,46 @@ class _CrearUsuarioScreenState extends ConsumerState<CrearUsuarioScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              _campo('Cédula', _cedulaCtrl, keyboardType: TextInputType.number, maxLength: 10),
-              _campo('Nombres', _nombresCtrl),
-              _campo('Apellidos', _apellidosCtrl),
-              _campo('Teléfono', _telefonoCtrl, keyboardType: TextInputType.phone),
-              _campo('Correo Electrónico', _correoCtrl, keyboardType: TextInputType.emailAddress),
+              _campo('Cédula', _cedulaCtrl, colorScheme, surfaceColor, keyboardType: TextInputType.number, maxLength: 10),
+              _campo('Nombres', _nombresCtrl, colorScheme, surfaceColor),
+              _campo('Apellidos', _apellidosCtrl, colorScheme, surfaceColor),
+              _campo('Teléfono', _telefonoCtrl, colorScheme, surfaceColor, keyboardType: TextInputType.phone),
+              _campo('Correo Electrónico', _correoCtrl, colorScheme, surfaceColor, keyboardType: TextInputType.emailAddress),
               const SizedBox(height: 16),
-              const Text('ROL', style: TextStyle(color: Colors.white38, fontSize: 11, letterSpacing: 1.5)),
+              Text('ROL', style: TextStyle(color: colorScheme.onSurface.withOpacity(0.38), fontSize: 11, letterSpacing: 1.5)),
               const SizedBox(height: 8),
-              DropdownButtonFormField<String>(
-                value: _rolSeleccionado,
-                dropdownColor: const Color(0xFF0F2442),
-                style: const TextStyle(color: Colors.white),
-                decoration: _inputDecor(),
-                items: _rolesDisponibles(usuario?.rol).map((r) {
-                  return DropdownMenuItem(value: r, child: Text(r == 'veedor' ? 'Veedor' : 'Coord. Recinto'));
-                }).toList(),
-                onChanged: (v) => setState(() => _rolSeleccionado = v ?? 'veedor'),
+              Builder(
+                builder: (context) {
+                  final roles = _rolesDisponibles(usuario?.rol);
+                  if (roles.isEmpty) {
+                    return const SizedBox(); // Oculta mientras carga el usuario
+                  }
+                  return DropdownButtonFormField<String>(
+                    value: roles.contains(_rolSeleccionado) ? _rolSeleccionado : roles.first,
+                    dropdownColor: surfaceColor,
+                    style: TextStyle(color: colorScheme.onSurface),
+                    decoration: _inputDecor(surfaceColor),
+                    items: roles.map((r) {
+                      return DropdownMenuItem(value: r, child: Text(r == 'veedor' ? 'Veedor' : 'Coord. Recinto'));
+                    }).toList(),
+                    onChanged: (v) {
+                      if (v != null) {
+                        setState(() => _rolSeleccionado = v);
+                      }
+                    },
+                  );
+                }
               ),
               if (_error != null) ...[
                 const SizedBox(height: 16),
                 Container(
                   padding: const EdgeInsets.all(12),
                   decoration: BoxDecoration(
-                    color: Colors.red.withOpacity(0.1),
+                    color: colorScheme.error.withOpacity(0.1),
                     borderRadius: BorderRadius.circular(8),
-                    border: Border.all(color: Colors.red.withOpacity(0.4)),
+                    border: Border.all(color: colorScheme.error.withOpacity(0.4)),
                   ),
-                  child: Text(_error!, style: const TextStyle(color: Colors.redAccent)),
+                  child: Text(_error!, style: TextStyle(color: colorScheme.error)),
                 ),
               ],
               const SizedBox(height: 24),
@@ -87,14 +104,14 @@ class _CrearUsuarioScreenState extends ConsumerState<CrearUsuarioScreen> {
                 height: 52,
                 child: ElevatedButton(
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFF4A90D9),
-                    foregroundColor: Colors.white,
+                    backgroundColor: colorScheme.primary,
+                    foregroundColor: colorScheme.onPrimary,
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                   ),
                   onPressed: _guardando ? null : _crearUsuario,
                   child: _guardando
-                      ? const SizedBox(width: 24, height: 24, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
-                      : const Text('Crear Usuario', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+                      ? SizedBox(width: 24, height: 24, child: CircularProgressIndicator(strokeWidth: 2, color: colorScheme.onPrimary))
+                      : Text('Crear Usuario', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: colorScheme.onPrimary)),
                 ),
               ),
             ],
@@ -117,24 +134,28 @@ class _CrearUsuarioScreenState extends ConsumerState<CrearUsuarioScreen> {
     return roles;
   }
 
-  InputDecoration _inputDecor() {
-    return const InputDecoration(
+  InputDecoration _inputDecor(Color surfaceColor) {
+    return InputDecoration(
       filled: true,
-      fillColor: Color(0xFF0F2442),
-      border: OutlineInputBorder(borderSide: BorderSide.none),
-      contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+      fillColor: surfaceColor,
+      border: const OutlineInputBorder(borderSide: BorderSide.none),
+      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
     );
   }
 
-  Widget _campo(String label, TextEditingController ctrl, {TextInputType? keyboardType, int? maxLength}) {
+  Widget _campo(String label, TextEditingController ctrl, ColorScheme colorScheme, Color surfaceColor, {TextInputType? keyboardType, int? maxLength}) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 12),
       child: TextFormField(
         controller: ctrl,
         keyboardType: keyboardType,
         maxLength: maxLength,
-        style: const TextStyle(color: Colors.white),
-        decoration: _inputDecor().copyWith(labelText: label, labelStyle: const TextStyle(color: Colors.white54), counterStyle: const TextStyle(color: Colors.white38)),
+        style: TextStyle(color: colorScheme.onSurface),
+        decoration: _inputDecor(surfaceColor).copyWith(
+          labelText: label,
+          labelStyle: TextStyle(color: colorScheme.onSurface.withOpacity(0.54)),
+          counterStyle: TextStyle(color: colorScheme.onSurface.withOpacity(0.38)),
+        ),
         validator: (v) {
           if (v == null || v.trim().isEmpty) return 'Campo obligatorio';
           if (label == 'Cédula' && !esCedulaValida(v.trim())) return 'Cédula inválida';

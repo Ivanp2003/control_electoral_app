@@ -17,6 +17,9 @@ class Recinto extends Equatable {
   /// Longitud de referencia geográfica del recinto (opcional).
   final double? lonRef;
 
+  /// ID del coordinador asignado al recinto (opcional).
+  final String? coordinadorId;
+
   const Recinto({
     required this.id,
     required this.nombre,
@@ -24,8 +27,9 @@ class Recinto extends Equatable {
     required this.direccion,
     this.latRef,
     this.lonRef,
+    this.coordinadorId,
   });
 
   @override
-  List<Object?> get props => [id, nombre, parroquiaId, direccion, latRef, lonRef];
+  List<Object?> get props => [id, nombre, parroquiaId, direccion, latRef, lonRef, coordinadorId];
 }

@@ -3,7 +3,7 @@ import '../../../../core/errors/failures.dart';
 import '../entities/acta.dart';
 import '../repositories/actas_repository.dart';
 
-part 'obtener_actas_por_jrv_usecase.g.dart';
+
 
 /// obtener_actas_por_jrv_usecase.dart
 ///

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../providers/avance_providers.dart';
+import '../../../../core/presentation/widgets/theme_toggle_button.dart';
 
 class AvanceElectoralScreen extends ConsumerWidget {
   const AvanceElectoralScreen({super.key});
@@ -8,18 +9,22 @@ class AvanceElectoralScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final avanceAsync = ref.watch(avanceDataProvider);
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+    final surfaceColor = theme.cardTheme.color ?? colorScheme.surface;
 
     return Scaffold(
-      backgroundColor: const Color(0xFF0A1628),
+      backgroundColor: theme.scaffoldBackgroundColor,
       appBar: AppBar(
-        backgroundColor: const Color(0xFF0F2442),
         title: const Text('Avance Electoral',
-            style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
-        iconTheme: const IconThemeData(color: Colors.white),
+            style: TextStyle(fontWeight: FontWeight.bold)),
+        actions: const [
+          ThemeToggleButton(),
+        ],
       ),
       body: avanceAsync.when(
-        loading: () => const Center(
-          child: CircularProgressIndicator(color: Color(0xFF4A90D9)),
+        loading: () => Center(
+          child: CircularProgressIndicator(color: colorScheme.primary),
         ),
         error: (e, _) => Center(
           child: Text('Error: $e',
@@ -53,9 +58,9 @@ class AvanceElectoralScreen extends ConsumerWidget {
                   child: LinearProgressIndicator(
                     value: data.porcentaje / 100,
                     minHeight: 20,
-                    backgroundColor: const Color(0xFF0F2442),
+                    backgroundColor: surfaceColor,
                     valueColor:
-                        const AlwaysStoppedAnimation<Color>(Color(0xFF4A90D9)),
+                        AlwaysStoppedAnimation<Color>(colorScheme.primary),
                   ),
                 ),
                 const SizedBox(height: 8),
@@ -63,47 +68,47 @@ class AvanceElectoralScreen extends ConsumerWidget {
                     icon: Icons.people_outline,
                     label: 'Total Sufragantes',
                     valor: '${data.totalSufragantes}'),
-              ]),
+              ], theme),
               const SizedBox(height: 16),
               if (data.totalizacion.isNotEmpty)
                 _seccion('TOTALIZACIÓN DE VOTOS', [
                   ...data.totalizacion
-                      .map((t) => _filaOrg(t.nombre, t.votos)),
+                      .map((t) => _filaOrg(t.nombre, t.votos, theme)),
                   const Divider(color: Colors.white12, height: 20),
-                  _filaOrg('Votos Blancos', data.totalBlancos,
+                  _filaOrg('Votos Blancos', data.totalBlancos, theme,
                       color: Colors.amberAccent),
-                  _filaOrg('Votos Nulos', data.totalNulos,
+                  _filaOrg('Votos Nulos', data.totalNulos, theme,
                       color: Colors.redAccent),
-                ]),
+                ], theme),
               const SizedBox(height: 16),
               _seccion('COORDENADAS GPS', [
                 if (data.coordenadas.isEmpty)
-                  const Padding(
-                    padding: EdgeInsets.all(16),
+                  Padding(
+                    padding: const EdgeInsets.all(16),
                     child: Text('No hay actas con coordenadas registradas.',
-                        style: TextStyle(color: Colors.white54)),
+                        style: TextStyle(color: colorScheme.onSurface.withOpacity(0.54))),
                   )
                 else
                   ...data.coordenadas.map((c) => Card(
-                        color: const Color(0xFF0F2442),
+                        color: surfaceColor,
                         margin: const EdgeInsets.only(bottom: 6),
                         child: ListTile(
                           dense: true,
-                          leading: const Icon(Icons.location_on,
-                              color: Color(0xFF4A90D9)),
+                          leading: Icon(Icons.location_on,
+                              color: colorScheme.primary),
                           title: Text('JRV: ${c.jrvId} — ${c.cargo}',
-                              style: const TextStyle(
-                                  color: Colors.white, fontSize: 13)),
+                              style: TextStyle(
+                                  color: colorScheme.onSurface, fontSize: 13)),
                           subtitle: Text(
                               '${c.latitud.toStringAsFixed(6)}, ${c.longitud.toStringAsFixed(6)}',
-                              style: const TextStyle(
-                                  color: Colors.white38, fontSize: 11)),
+                              style: TextStyle(
+                                  color: colorScheme.onSurface.withOpacity(0.38), fontSize: 11)),
                           trailing: Text('${c.totalSufragantes}',
-                              style: const TextStyle(
-                                  color: Colors.white54, fontSize: 12)),
+                              style: TextStyle(
+                                  color: colorScheme.onSurface.withOpacity(0.54), fontSize: 12)),
                         ),
                       )),
-              ]),
+              ], theme),
             ],
           ),
         ),
@@ -111,13 +116,13 @@ class AvanceElectoralScreen extends ConsumerWidget {
     );
   }
 
-  static Widget _seccion(String titulo, List<Widget> hijos) {
+  static Widget _seccion(String titulo, List<Widget> hijos, ThemeData theme) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(titulo,
-            style: const TextStyle(
-                color: Colors.white38,
+            style: TextStyle(
+                color: theme.colorScheme.onSurface.withOpacity(0.38),
                 fontSize: 11,
                 letterSpacing: 1.5,
                 fontWeight: FontWeight.bold)),
@@ -127,18 +132,18 @@ class AvanceElectoralScreen extends ConsumerWidget {
     );
   }
 
-  static Widget _filaOrg(String nombre, int votos, {Color? color}) {
+  static Widget _filaOrg(String nombre, int votos, ThemeData theme, {Color? color}) {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 4),
       child: Row(
         children: [
           Expanded(
             child: Text(nombre,
-                style: const TextStyle(color: Colors.white, fontSize: 14)),
+                style: TextStyle(color: theme.colorScheme.onSurface, fontSize: 14)),
           ),
           Text('$votos',
               style: TextStyle(
-                  color: color ?? Colors.white,
+                  color: color ?? theme.colorScheme.onSurface,
                   fontSize: 16,
                   fontWeight: FontWeight.bold)),
         ],
@@ -156,8 +161,12 @@ class _TarjetaResumen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+    final surfaceColor = theme.cardTheme.color ?? colorScheme.surface;
+
     return Card(
-      color: const Color(0xFF0F2442),
+      color: surfaceColor,
       margin: const EdgeInsets.only(bottom: 8),
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
@@ -167,20 +176,20 @@ class _TarjetaResumen extends StatelessWidget {
               width: 40,
               height: 40,
               decoration: BoxDecoration(
-                color: const Color(0xFF4A90D9).withOpacity(0.15),
+                color: colorScheme.primary.withOpacity(0.15),
                 borderRadius: BorderRadius.circular(10),
               ),
-              child: Icon(icon, color: const Color(0xFF4A90D9), size: 20),
+              child: Icon(icon, color: colorScheme.primary, size: 20),
             ),
             const SizedBox(width: 14),
             Expanded(
               child: Text(label,
                   style:
-                      const TextStyle(color: Colors.white70, fontSize: 13)),
+                      TextStyle(color: colorScheme.onSurface.withOpacity(0.7), fontSize: 13)),
             ),
             Text(valor,
-                style: const TextStyle(
-                    color: Colors.white,
+                style: TextStyle(
+                    color: colorScheme.onSurface,
                     fontSize: 18,
                     fontWeight: FontWeight.bold)),
           ],

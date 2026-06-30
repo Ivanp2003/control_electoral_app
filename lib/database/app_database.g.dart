@@ -2078,6 +2078,17 @@ class $RecintosLocalTable extends RecintosLocal
     type: DriftSqlType.double,
     requiredDuringInsert: false,
   );
+  static const VerificationMeta _coordinadorIdMeta = const VerificationMeta(
+    'coordinadorId',
+  );
+  @override
+  late final GeneratedColumn<String> coordinadorId = GeneratedColumn<String>(
+    'coordinador_id',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
   @override
   List<GeneratedColumn> get $columns => [
     id,
@@ -2086,6 +2097,7 @@ class $RecintosLocalTable extends RecintosLocal
     direccion,
     latRef,
     lonRef,
+    coordinadorId,
   ];
   @override
   String get aliasedName => _alias ?? actualTableName;
@@ -2143,6 +2155,15 @@ class $RecintosLocalTable extends RecintosLocal
         lonRef.isAcceptableOrUnknown(data['lon_ref']!, _lonRefMeta),
       );
     }
+    if (data.containsKey('coordinador_id')) {
+      context.handle(
+        _coordinadorIdMeta,
+        coordinadorId.isAcceptableOrUnknown(
+          data['coordinador_id']!,
+          _coordinadorIdMeta,
+        ),
+      );
+    }
     return context;
   }
 
@@ -2176,6 +2197,10 @@ class $RecintosLocalTable extends RecintosLocal
         DriftSqlType.double,
         data['${effectivePrefix}lon_ref'],
       ),
+      coordinadorId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}coordinador_id'],
+      ),
     );
   }
 
@@ -2193,6 +2218,7 @@ class RecintosLocalData extends DataClass
   final String direccion;
   final double? latRef;
   final double? lonRef;
+  final String? coordinadorId;
   const RecintosLocalData({
     required this.id,
     required this.nombre,
@@ -2200,6 +2226,7 @@ class RecintosLocalData extends DataClass
     required this.direccion,
     this.latRef,
     this.lonRef,
+    this.coordinadorId,
   });
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
@@ -2213,6 +2240,9 @@ class RecintosLocalData extends DataClass
     }
     if (!nullToAbsent || lonRef != null) {
       map['lon_ref'] = Variable<double>(lonRef);
+    }
+    if (!nullToAbsent || coordinadorId != null) {
+      map['coordinador_id'] = Variable<String>(coordinadorId);
     }
     return map;
   }
@@ -2229,6 +2259,9 @@ class RecintosLocalData extends DataClass
       lonRef: lonRef == null && nullToAbsent
           ? const Value.absent()
           : Value(lonRef),
+      coordinadorId: coordinadorId == null && nullToAbsent
+          ? const Value.absent()
+          : Value(coordinadorId),
     );
   }
 
@@ -2244,6 +2277,7 @@ class RecintosLocalData extends DataClass
       direccion: serializer.fromJson<String>(json['direccion']),
       latRef: serializer.fromJson<double?>(json['latRef']),
       lonRef: serializer.fromJson<double?>(json['lonRef']),
+      coordinadorId: serializer.fromJson<String?>(json['coordinadorId']),
     );
   }
   @override
@@ -2256,6 +2290,7 @@ class RecintosLocalData extends DataClass
       'direccion': serializer.toJson<String>(direccion),
       'latRef': serializer.toJson<double?>(latRef),
       'lonRef': serializer.toJson<double?>(lonRef),
+      'coordinadorId': serializer.toJson<String?>(coordinadorId),
     };
   }
 
@@ -2266,6 +2301,7 @@ class RecintosLocalData extends DataClass
     String? direccion,
     Value<double?> latRef = const Value.absent(),
     Value<double?> lonRef = const Value.absent(),
+    Value<String?> coordinadorId = const Value.absent(),
   }) => RecintosLocalData(
     id: id ?? this.id,
     nombre: nombre ?? this.nombre,
@@ -2273,6 +2309,9 @@ class RecintosLocalData extends DataClass
     direccion: direccion ?? this.direccion,
     latRef: latRef.present ? latRef.value : this.latRef,
     lonRef: lonRef.present ? lonRef.value : this.lonRef,
+    coordinadorId: coordinadorId.present
+        ? coordinadorId.value
+        : this.coordinadorId,
   );
   RecintosLocalData copyWithCompanion(RecintosLocalCompanion data) {
     return RecintosLocalData(
@@ -2284,6 +2323,9 @@ class RecintosLocalData extends DataClass
       direccion: data.direccion.present ? data.direccion.value : this.direccion,
       latRef: data.latRef.present ? data.latRef.value : this.latRef,
       lonRef: data.lonRef.present ? data.lonRef.value : this.lonRef,
+      coordinadorId: data.coordinadorId.present
+          ? data.coordinadorId.value
+          : this.coordinadorId,
     );
   }
 
@@ -2295,14 +2337,22 @@ class RecintosLocalData extends DataClass
           ..write('parroquiaId: $parroquiaId, ')
           ..write('direccion: $direccion, ')
           ..write('latRef: $latRef, ')
-          ..write('lonRef: $lonRef')
+          ..write('lonRef: $lonRef, ')
+          ..write('coordinadorId: $coordinadorId')
           ..write(')'))
         .toString();
   }
 
   @override
-  int get hashCode =>
-      Object.hash(id, nombre, parroquiaId, direccion, latRef, lonRef);
+  int get hashCode => Object.hash(
+    id,
+    nombre,
+    parroquiaId,
+    direccion,
+    latRef,
+    lonRef,
+    coordinadorId,
+  );
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
@@ -2312,7 +2362,8 @@ class RecintosLocalData extends DataClass
           other.parroquiaId == this.parroquiaId &&
           other.direccion == this.direccion &&
           other.latRef == this.latRef &&
-          other.lonRef == this.lonRef);
+          other.lonRef == this.lonRef &&
+          other.coordinadorId == this.coordinadorId);
 }
 
 class RecintosLocalCompanion extends UpdateCompanion<RecintosLocalData> {
@@ -2322,6 +2373,7 @@ class RecintosLocalCompanion extends UpdateCompanion<RecintosLocalData> {
   final Value<String> direccion;
   final Value<double?> latRef;
   final Value<double?> lonRef;
+  final Value<String?> coordinadorId;
   final Value<int> rowid;
   const RecintosLocalCompanion({
     this.id = const Value.absent(),
@@ -2330,6 +2382,7 @@ class RecintosLocalCompanion extends UpdateCompanion<RecintosLocalData> {
     this.direccion = const Value.absent(),
     this.latRef = const Value.absent(),
     this.lonRef = const Value.absent(),
+    this.coordinadorId = const Value.absent(),
     this.rowid = const Value.absent(),
   });
   RecintosLocalCompanion.insert({
@@ -2339,6 +2392,7 @@ class RecintosLocalCompanion extends UpdateCompanion<RecintosLocalData> {
     required String direccion,
     this.latRef = const Value.absent(),
     this.lonRef = const Value.absent(),
+    this.coordinadorId = const Value.absent(),
     this.rowid = const Value.absent(),
   }) : id = Value(id),
        nombre = Value(nombre),
@@ -2351,6 +2405,7 @@ class RecintosLocalCompanion extends UpdateCompanion<RecintosLocalData> {
     Expression<String>? direccion,
     Expression<double>? latRef,
     Expression<double>? lonRef,
+    Expression<String>? coordinadorId,
     Expression<int>? rowid,
   }) {
     return RawValuesInsertable({
@@ -2360,6 +2415,7 @@ class RecintosLocalCompanion extends UpdateCompanion<RecintosLocalData> {
       if (direccion != null) 'direccion': direccion,
       if (latRef != null) 'lat_ref': latRef,
       if (lonRef != null) 'lon_ref': lonRef,
+      if (coordinadorId != null) 'coordinador_id': coordinadorId,
       if (rowid != null) 'rowid': rowid,
     });
   }
@@ -2371,6 +2427,7 @@ class RecintosLocalCompanion extends UpdateCompanion<RecintosLocalData> {
     Value<String>? direccion,
     Value<double?>? latRef,
     Value<double?>? lonRef,
+    Value<String?>? coordinadorId,
     Value<int>? rowid,
   }) {
     return RecintosLocalCompanion(
@@ -2380,6 +2437,7 @@ class RecintosLocalCompanion extends UpdateCompanion<RecintosLocalData> {
       direccion: direccion ?? this.direccion,
       latRef: latRef ?? this.latRef,
       lonRef: lonRef ?? this.lonRef,
+      coordinadorId: coordinadorId ?? this.coordinadorId,
       rowid: rowid ?? this.rowid,
     );
   }
@@ -2405,6 +2463,9 @@ class RecintosLocalCompanion extends UpdateCompanion<RecintosLocalData> {
     if (lonRef.present) {
       map['lon_ref'] = Variable<double>(lonRef.value);
     }
+    if (coordinadorId.present) {
+      map['coordinador_id'] = Variable<String>(coordinadorId.value);
+    }
     if (rowid.present) {
       map['rowid'] = Variable<int>(rowid.value);
     }
@@ -2420,6 +2481,7 @@ class RecintosLocalCompanion extends UpdateCompanion<RecintosLocalData> {
           ..write('direccion: $direccion, ')
           ..write('latRef: $latRef, ')
           ..write('lonRef: $lonRef, ')
+          ..write('coordinadorId: $coordinadorId, ')
           ..write('rowid: $rowid')
           ..write(')'))
         .toString();
@@ -2718,8 +2780,46 @@ class $OrganizacionesLocalTable extends OrganizacionesLocal
     type: DriftSqlType.string,
     requiredDuringInsert: true,
   );
+  static const VerificationMeta _listaMeta = const VerificationMeta('lista');
   @override
-  List<GeneratedColumn> get $columns => [id, nombre, cargo];
+  late final GeneratedColumn<int> lista = GeneratedColumn<int>(
+    'lista',
+    aliasedName,
+    true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _candidatoPrincipalMeta =
+      const VerificationMeta('candidatoPrincipal');
+  @override
+  late final GeneratedColumn<String> candidatoPrincipal =
+      GeneratedColumn<String>(
+        'candidato_principal',
+        aliasedName,
+        true,
+        type: DriftSqlType.string,
+        requiredDuringInsert: false,
+      );
+  static const VerificationMeta _candidatoSecundarioMeta =
+      const VerificationMeta('candidatoSecundario');
+  @override
+  late final GeneratedColumn<String> candidatoSecundario =
+      GeneratedColumn<String>(
+        'candidato_secundario',
+        aliasedName,
+        true,
+        type: DriftSqlType.string,
+        requiredDuringInsert: false,
+      );
+  @override
+  List<GeneratedColumn> get $columns => [
+    id,
+    nombre,
+    cargo,
+    lista,
+    candidatoPrincipal,
+    candidatoSecundario,
+  ];
   @override
   String get aliasedName => _alias ?? actualTableName;
   @override
@@ -2753,6 +2853,30 @@ class $OrganizacionesLocalTable extends OrganizacionesLocal
     } else if (isInserting) {
       context.missing(_cargoMeta);
     }
+    if (data.containsKey('lista')) {
+      context.handle(
+        _listaMeta,
+        lista.isAcceptableOrUnknown(data['lista']!, _listaMeta),
+      );
+    }
+    if (data.containsKey('candidato_principal')) {
+      context.handle(
+        _candidatoPrincipalMeta,
+        candidatoPrincipal.isAcceptableOrUnknown(
+          data['candidato_principal']!,
+          _candidatoPrincipalMeta,
+        ),
+      );
+    }
+    if (data.containsKey('candidato_secundario')) {
+      context.handle(
+        _candidatoSecundarioMeta,
+        candidatoSecundario.isAcceptableOrUnknown(
+          data['candidato_secundario']!,
+          _candidatoSecundarioMeta,
+        ),
+      );
+    }
     return context;
   }
 
@@ -2777,6 +2901,18 @@ class $OrganizacionesLocalTable extends OrganizacionesLocal
         DriftSqlType.string,
         data['${effectivePrefix}cargo'],
       )!,
+      lista: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}lista'],
+      ),
+      candidatoPrincipal: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}candidato_principal'],
+      ),
+      candidatoSecundario: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}candidato_secundario'],
+      ),
     );
   }
 
@@ -2793,10 +2929,16 @@ class OrganizacionesLocalData extends DataClass
 
   /// Cargo electoral: 'alcalde' o 'prefecto'.
   final String cargo;
+  final int? lista;
+  final String? candidatoPrincipal;
+  final String? candidatoSecundario;
   const OrganizacionesLocalData({
     required this.id,
     required this.nombre,
     required this.cargo,
+    this.lista,
+    this.candidatoPrincipal,
+    this.candidatoSecundario,
   });
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
@@ -2804,6 +2946,15 @@ class OrganizacionesLocalData extends DataClass
     map['id'] = Variable<String>(id);
     map['nombre'] = Variable<String>(nombre);
     map['cargo'] = Variable<String>(cargo);
+    if (!nullToAbsent || lista != null) {
+      map['lista'] = Variable<int>(lista);
+    }
+    if (!nullToAbsent || candidatoPrincipal != null) {
+      map['candidato_principal'] = Variable<String>(candidatoPrincipal);
+    }
+    if (!nullToAbsent || candidatoSecundario != null) {
+      map['candidato_secundario'] = Variable<String>(candidatoSecundario);
+    }
     return map;
   }
 
@@ -2812,6 +2963,15 @@ class OrganizacionesLocalData extends DataClass
       id: Value(id),
       nombre: Value(nombre),
       cargo: Value(cargo),
+      lista: lista == null && nullToAbsent
+          ? const Value.absent()
+          : Value(lista),
+      candidatoPrincipal: candidatoPrincipal == null && nullToAbsent
+          ? const Value.absent()
+          : Value(candidatoPrincipal),
+      candidatoSecundario: candidatoSecundario == null && nullToAbsent
+          ? const Value.absent()
+          : Value(candidatoSecundario),
     );
   }
 
@@ -2824,6 +2984,13 @@ class OrganizacionesLocalData extends DataClass
       id: serializer.fromJson<String>(json['id']),
       nombre: serializer.fromJson<String>(json['nombre']),
       cargo: serializer.fromJson<String>(json['cargo']),
+      lista: serializer.fromJson<int?>(json['lista']),
+      candidatoPrincipal: serializer.fromJson<String?>(
+        json['candidatoPrincipal'],
+      ),
+      candidatoSecundario: serializer.fromJson<String?>(
+        json['candidatoSecundario'],
+      ),
     );
   }
   @override
@@ -2833,6 +3000,9 @@ class OrganizacionesLocalData extends DataClass
       'id': serializer.toJson<String>(id),
       'nombre': serializer.toJson<String>(nombre),
       'cargo': serializer.toJson<String>(cargo),
+      'lista': serializer.toJson<int?>(lista),
+      'candidatoPrincipal': serializer.toJson<String?>(candidatoPrincipal),
+      'candidatoSecundario': serializer.toJson<String?>(candidatoSecundario),
     };
   }
 
@@ -2840,16 +3010,33 @@ class OrganizacionesLocalData extends DataClass
     String? id,
     String? nombre,
     String? cargo,
+    Value<int?> lista = const Value.absent(),
+    Value<String?> candidatoPrincipal = const Value.absent(),
+    Value<String?> candidatoSecundario = const Value.absent(),
   }) => OrganizacionesLocalData(
     id: id ?? this.id,
     nombre: nombre ?? this.nombre,
     cargo: cargo ?? this.cargo,
+    lista: lista.present ? lista.value : this.lista,
+    candidatoPrincipal: candidatoPrincipal.present
+        ? candidatoPrincipal.value
+        : this.candidatoPrincipal,
+    candidatoSecundario: candidatoSecundario.present
+        ? candidatoSecundario.value
+        : this.candidatoSecundario,
   );
   OrganizacionesLocalData copyWithCompanion(OrganizacionesLocalCompanion data) {
     return OrganizacionesLocalData(
       id: data.id.present ? data.id.value : this.id,
       nombre: data.nombre.present ? data.nombre.value : this.nombre,
       cargo: data.cargo.present ? data.cargo.value : this.cargo,
+      lista: data.lista.present ? data.lista.value : this.lista,
+      candidatoPrincipal: data.candidatoPrincipal.present
+          ? data.candidatoPrincipal.value
+          : this.candidatoPrincipal,
+      candidatoSecundario: data.candidatoSecundario.present
+          ? data.candidatoSecundario.value
+          : this.candidatoSecundario,
     );
   }
 
@@ -2858,20 +3045,33 @@ class OrganizacionesLocalData extends DataClass
     return (StringBuffer('OrganizacionesLocalData(')
           ..write('id: $id, ')
           ..write('nombre: $nombre, ')
-          ..write('cargo: $cargo')
+          ..write('cargo: $cargo, ')
+          ..write('lista: $lista, ')
+          ..write('candidatoPrincipal: $candidatoPrincipal, ')
+          ..write('candidatoSecundario: $candidatoSecundario')
           ..write(')'))
         .toString();
   }
 
   @override
-  int get hashCode => Object.hash(id, nombre, cargo);
+  int get hashCode => Object.hash(
+    id,
+    nombre,
+    cargo,
+    lista,
+    candidatoPrincipal,
+    candidatoSecundario,
+  );
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
       (other is OrganizacionesLocalData &&
           other.id == this.id &&
           other.nombre == this.nombre &&
-          other.cargo == this.cargo);
+          other.cargo == this.cargo &&
+          other.lista == this.lista &&
+          other.candidatoPrincipal == this.candidatoPrincipal &&
+          other.candidatoSecundario == this.candidatoSecundario);
 }
 
 class OrganizacionesLocalCompanion
@@ -2879,17 +3079,26 @@ class OrganizacionesLocalCompanion
   final Value<String> id;
   final Value<String> nombre;
   final Value<String> cargo;
+  final Value<int?> lista;
+  final Value<String?> candidatoPrincipal;
+  final Value<String?> candidatoSecundario;
   final Value<int> rowid;
   const OrganizacionesLocalCompanion({
     this.id = const Value.absent(),
     this.nombre = const Value.absent(),
     this.cargo = const Value.absent(),
+    this.lista = const Value.absent(),
+    this.candidatoPrincipal = const Value.absent(),
+    this.candidatoSecundario = const Value.absent(),
     this.rowid = const Value.absent(),
   });
   OrganizacionesLocalCompanion.insert({
     required String id,
     required String nombre,
     required String cargo,
+    this.lista = const Value.absent(),
+    this.candidatoPrincipal = const Value.absent(),
+    this.candidatoSecundario = const Value.absent(),
     this.rowid = const Value.absent(),
   }) : id = Value(id),
        nombre = Value(nombre),
@@ -2898,12 +3107,19 @@ class OrganizacionesLocalCompanion
     Expression<String>? id,
     Expression<String>? nombre,
     Expression<String>? cargo,
+    Expression<int>? lista,
+    Expression<String>? candidatoPrincipal,
+    Expression<String>? candidatoSecundario,
     Expression<int>? rowid,
   }) {
     return RawValuesInsertable({
       if (id != null) 'id': id,
       if (nombre != null) 'nombre': nombre,
       if (cargo != null) 'cargo': cargo,
+      if (lista != null) 'lista': lista,
+      if (candidatoPrincipal != null) 'candidato_principal': candidatoPrincipal,
+      if (candidatoSecundario != null)
+        'candidato_secundario': candidatoSecundario,
       if (rowid != null) 'rowid': rowid,
     });
   }
@@ -2912,12 +3128,18 @@ class OrganizacionesLocalCompanion
     Value<String>? id,
     Value<String>? nombre,
     Value<String>? cargo,
+    Value<int?>? lista,
+    Value<String?>? candidatoPrincipal,
+    Value<String?>? candidatoSecundario,
     Value<int>? rowid,
   }) {
     return OrganizacionesLocalCompanion(
       id: id ?? this.id,
       nombre: nombre ?? this.nombre,
       cargo: cargo ?? this.cargo,
+      lista: lista ?? this.lista,
+      candidatoPrincipal: candidatoPrincipal ?? this.candidatoPrincipal,
+      candidatoSecundario: candidatoSecundario ?? this.candidatoSecundario,
       rowid: rowid ?? this.rowid,
     );
   }
@@ -2934,6 +3156,15 @@ class OrganizacionesLocalCompanion
     if (cargo.present) {
       map['cargo'] = Variable<String>(cargo.value);
     }
+    if (lista.present) {
+      map['lista'] = Variable<int>(lista.value);
+    }
+    if (candidatoPrincipal.present) {
+      map['candidato_principal'] = Variable<String>(candidatoPrincipal.value);
+    }
+    if (candidatoSecundario.present) {
+      map['candidato_secundario'] = Variable<String>(candidatoSecundario.value);
+    }
     if (rowid.present) {
       map['rowid'] = Variable<int>(rowid.value);
     }
@@ -2946,6 +3177,9 @@ class OrganizacionesLocalCompanion
           ..write('id: $id, ')
           ..write('nombre: $nombre, ')
           ..write('cargo: $cargo, ')
+          ..write('lista: $lista, ')
+          ..write('candidatoPrincipal: $candidatoPrincipal, ')
+          ..write('candidatoSecundario: $candidatoSecundario, ')
           ..write('rowid: $rowid')
           ..write(')'))
         .toString();
@@ -5009,6 +5243,7 @@ typedef $$RecintosLocalTableCreateCompanionBuilder =
       required String direccion,
       Value<double?> latRef,
       Value<double?> lonRef,
+      Value<String?> coordinadorId,
       Value<int> rowid,
     });
 typedef $$RecintosLocalTableUpdateCompanionBuilder =
@@ -5019,6 +5254,7 @@ typedef $$RecintosLocalTableUpdateCompanionBuilder =
       Value<String> direccion,
       Value<double?> latRef,
       Value<double?> lonRef,
+      Value<String?> coordinadorId,
       Value<int> rowid,
     });
 
@@ -5058,6 +5294,11 @@ class $$RecintosLocalTableFilterComposer
 
   ColumnFilters<double> get lonRef => $composableBuilder(
     column: $table.lonRef,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get coordinadorId => $composableBuilder(
+    column: $table.coordinadorId,
     builder: (column) => ColumnFilters(column),
   );
 }
@@ -5100,6 +5341,11 @@ class $$RecintosLocalTableOrderingComposer
     column: $table.lonRef,
     builder: (column) => ColumnOrderings(column),
   );
+
+  ColumnOrderings<String> get coordinadorId => $composableBuilder(
+    column: $table.coordinadorId,
+    builder: (column) => ColumnOrderings(column),
+  );
 }
 
 class $$RecintosLocalTableAnnotationComposer
@@ -5130,6 +5376,11 @@ class $$RecintosLocalTableAnnotationComposer
 
   GeneratedColumn<double> get lonRef =>
       $composableBuilder(column: $table.lonRef, builder: (column) => column);
+
+  GeneratedColumn<String> get coordinadorId => $composableBuilder(
+    column: $table.coordinadorId,
+    builder: (column) => column,
+  );
 }
 
 class $$RecintosLocalTableTableManager
@@ -5173,6 +5424,7 @@ class $$RecintosLocalTableTableManager
                 Value<String> direccion = const Value.absent(),
                 Value<double?> latRef = const Value.absent(),
                 Value<double?> lonRef = const Value.absent(),
+                Value<String?> coordinadorId = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
               }) => RecintosLocalCompanion(
                 id: id,
@@ -5181,6 +5433,7 @@ class $$RecintosLocalTableTableManager
                 direccion: direccion,
                 latRef: latRef,
                 lonRef: lonRef,
+                coordinadorId: coordinadorId,
                 rowid: rowid,
               ),
           createCompanionCallback:
@@ -5191,6 +5444,7 @@ class $$RecintosLocalTableTableManager
                 required String direccion,
                 Value<double?> latRef = const Value.absent(),
                 Value<double?> lonRef = const Value.absent(),
+                Value<String?> coordinadorId = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
               }) => RecintosLocalCompanion.insert(
                 id: id,
@@ -5199,6 +5453,7 @@ class $$RecintosLocalTableTableManager
                 direccion: direccion,
                 latRef: latRef,
                 lonRef: lonRef,
+                coordinadorId: coordinadorId,
                 rowid: rowid,
               ),
           withReferenceMapper: (p0) => p0
@@ -5393,6 +5648,9 @@ typedef $$OrganizacionesLocalTableCreateCompanionBuilder =
       required String id,
       required String nombre,
       required String cargo,
+      Value<int?> lista,
+      Value<String?> candidatoPrincipal,
+      Value<String?> candidatoSecundario,
       Value<int> rowid,
     });
 typedef $$OrganizacionesLocalTableUpdateCompanionBuilder =
@@ -5400,6 +5658,9 @@ typedef $$OrganizacionesLocalTableUpdateCompanionBuilder =
       Value<String> id,
       Value<String> nombre,
       Value<String> cargo,
+      Value<int?> lista,
+      Value<String?> candidatoPrincipal,
+      Value<String?> candidatoSecundario,
       Value<int> rowid,
     });
 
@@ -5424,6 +5685,21 @@ class $$OrganizacionesLocalTableFilterComposer
 
   ColumnFilters<String> get cargo => $composableBuilder(
     column: $table.cargo,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get lista => $composableBuilder(
+    column: $table.lista,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get candidatoPrincipal => $composableBuilder(
+    column: $table.candidatoPrincipal,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get candidatoSecundario => $composableBuilder(
+    column: $table.candidatoSecundario,
     builder: (column) => ColumnFilters(column),
   );
 }
@@ -5451,6 +5727,21 @@ class $$OrganizacionesLocalTableOrderingComposer
     column: $table.cargo,
     builder: (column) => ColumnOrderings(column),
   );
+
+  ColumnOrderings<int> get lista => $composableBuilder(
+    column: $table.lista,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get candidatoPrincipal => $composableBuilder(
+    column: $table.candidatoPrincipal,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get candidatoSecundario => $composableBuilder(
+    column: $table.candidatoSecundario,
+    builder: (column) => ColumnOrderings(column),
+  );
 }
 
 class $$OrganizacionesLocalTableAnnotationComposer
@@ -5470,6 +5761,19 @@ class $$OrganizacionesLocalTableAnnotationComposer
 
   GeneratedColumn<String> get cargo =>
       $composableBuilder(column: $table.cargo, builder: (column) => column);
+
+  GeneratedColumn<int> get lista =>
+      $composableBuilder(column: $table.lista, builder: (column) => column);
+
+  GeneratedColumn<String> get candidatoPrincipal => $composableBuilder(
+    column: $table.candidatoPrincipal,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get candidatoSecundario => $composableBuilder(
+    column: $table.candidatoSecundario,
+    builder: (column) => column,
+  );
 }
 
 class $$OrganizacionesLocalTableTableManager
@@ -5518,11 +5822,17 @@ class $$OrganizacionesLocalTableTableManager
                 Value<String> id = const Value.absent(),
                 Value<String> nombre = const Value.absent(),
                 Value<String> cargo = const Value.absent(),
+                Value<int?> lista = const Value.absent(),
+                Value<String?> candidatoPrincipal = const Value.absent(),
+                Value<String?> candidatoSecundario = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
               }) => OrganizacionesLocalCompanion(
                 id: id,
                 nombre: nombre,
                 cargo: cargo,
+                lista: lista,
+                candidatoPrincipal: candidatoPrincipal,
+                candidatoSecundario: candidatoSecundario,
                 rowid: rowid,
               ),
           createCompanionCallback:
@@ -5530,11 +5840,17 @@ class $$OrganizacionesLocalTableTableManager
                 required String id,
                 required String nombre,
                 required String cargo,
+                Value<int?> lista = const Value.absent(),
+                Value<String?> candidatoPrincipal = const Value.absent(),
+                Value<String?> candidatoSecundario = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
               }) => OrganizacionesLocalCompanion.insert(
                 id: id,
                 nombre: nombre,
                 cargo: cargo,
+                lista: lista,
+                candidatoPrincipal: candidatoPrincipal,
+                candidatoSecundario: candidatoSecundario,
                 rowid: rowid,
               ),
           withReferenceMapper: (p0) => p0

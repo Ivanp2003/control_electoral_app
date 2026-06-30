@@ -16,7 +16,9 @@ abstract class RecintosLocalDatasource {
   Future<List<CantonModel>> obtenerCantones(String provinciaId);
   Future<List<ParroquiaModel>> obtenerParroquias(String cantonId);
   Future<List<RecintoModel>> obtenerRecintos(String parroquiaId);
+  Future<RecintoModel?> obtenerRecintoPorId(String id);
   Future<List<JrvModel>> obtenerJrvPorRecinto(String recintoId);
+  Future<JrvModel?> obtenerJrvPorId(String id);
 
   Future<void> guardarProvincias(List<ProvinciaModel> provincias);
   Future<void> guardarCantones(List<CantonModel> cantones);
@@ -71,8 +73,24 @@ class RecintosLocalDatasourceImpl implements RecintosLocalDatasource {
               direccion: r.direccion,
               latRef: r.latRef,
               lonRef: r.lonRef,
+              coordinadorId: r.coordinadorId,
             )))
         .toList();
+  }
+
+  @override
+  Future<RecintoModel?> obtenerRecintoPorId(String id) async {
+    final r = await _db.obtenerRecintoLocalPorId(id);
+    if (r == null) return null;
+    return RecintoModel.fromLocalData((
+      id: r.id,
+      nombre: r.nombre,
+      parroquiaId: r.parroquiaId,
+      direccion: r.direccion,
+      latRef: r.latRef,
+      lonRef: r.lonRef,
+      coordinadorId: r.coordinadorId,
+    ));
   }
 
   @override
@@ -82,6 +100,14 @@ class RecintosLocalDatasourceImpl implements RecintosLocalDatasource {
         .map((r) => JrvModel.fromLocalData(
             (id: r.id, codigo: r.codigo, recintoId: r.recintoId)))
         .toList();
+  }
+
+  @override
+  Future<JrvModel?> obtenerJrvPorId(String id) async {
+    final r = await _db.obtenerJrvLocalPorId(id);
+    if (r == null) return null;
+    return JrvModel.fromLocalData(
+        (id: r.id, codigo: r.codigo, recintoId: r.recintoId));
   }
 
   // ---------------------------------------------------------------------------

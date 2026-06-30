@@ -6,11 +6,11 @@ class ActaModel extends Equatable {
   final String id;
   final String jrvId;
   final String cargoElectoral;
-  final List<OrganizacionConVotos> votos;
+  final List<OrganizacionConVotos> organizaciones;
   final int votosBlancos;
   final int votosNulos;
   final int totalSufragantes;
-  final String? fotoUrl;
+  final String? evidenciaFoto;
   final double latitud;
   final double longitud;
   final String creadoPor;
@@ -22,11 +22,11 @@ class ActaModel extends Equatable {
     required this.id,
     required this.jrvId,
     required this.cargoElectoral,
-    required this.votos,
+    required this.organizaciones,
     required this.votosBlancos,
     required this.votosNulos,
     required this.totalSufragantes,
-    this.fotoUrl,
+    this.evidenciaFoto,
     this.latitud = 0.0,
     this.longitud = 0.0,
     required this.creadoPor,
@@ -40,11 +40,11 @@ class ActaModel extends Equatable {
       id: entity.id,
       jrvId: entity.jrvId,
       cargoElectoral: entity.cargoElectoral,
-      votos: entity.votos,
+      organizaciones: entity.organizaciones,
       votosBlancos: entity.votosBlancos,
       votosNulos: entity.votosNulos,
       totalSufragantes: entity.totalSufragantes,
-      fotoUrl: entity.fotoUrl,
+      evidenciaFoto: entity.evidenciaFoto,
       latitud: entity.latitud,
       longitud: entity.longitud,
       creadoPor: entity.creadoPor,
@@ -59,11 +59,11 @@ class ActaModel extends Equatable {
       id: id,
       jrvId: jrvId,
       cargoElectoral: cargoElectoral,
-      votos: votos,
+      organizaciones: organizaciones,
       votosBlancos: votosBlancos,
       votosNulos: votosNulos,
       totalSufragantes: totalSufragantes,
-      fotoUrl: fotoUrl,
+      evidenciaFoto: evidenciaFoto,
       latitud: latitud,
       longitud: longitud,
       creadoPor: creadoPor,
@@ -80,7 +80,7 @@ class ActaModel extends Equatable {
         'votosBlancos': votosBlancos,
         'votosNulos': votosNulos,
         'totalSufragantes': totalSufragantes,
-        'fotoUrl': fotoUrl,
+        'evidenciaFoto': evidenciaFoto,
         'latitud': latitud,
         'longitud': longitud,
         'creadoPor': creadoPor,
@@ -95,7 +95,7 @@ class ActaModel extends Equatable {
       id: json['id'] as String,
       jrvId: json['jrvId'] as String,
       cargoElectoral: json['cargoElectoral'] as String,
-      votos: votosJson
+      organizaciones: votosJson
           .map((v) => OrganizacionConVotos(
                 organizacionId: v['organizacionId'] as String,
                 nombreOrganizacion: v['nombreOrganizacion'] as String? ?? v['nombre'] as String? ?? '',
@@ -105,7 +105,7 @@ class ActaModel extends Equatable {
       votosBlancos: json['votosBlancos'] as int,
       votosNulos: json['votosNulos'] as int,
       totalSufragantes: json['totalSufragantes'] as int,
-      fotoUrl: json['fotoUrl'] as String?,
+      evidenciaFoto: json['evidenciaFoto'] as String?,
       latitud: (json['latitud'] as num?)?.toDouble() ?? 0.0,
       longitud: (json['longitud'] as num?)?.toDouble() ?? 0.0,
       creadoPor: json['creadoPor'] as String,
@@ -121,11 +121,11 @@ class ActaModel extends Equatable {
     String? id,
     String? jrvId,
     String? cargoElectoral,
-    List<OrganizacionConVotos>? votos,
+    List<OrganizacionConVotos>? organizaciones,
     int? votosBlancos,
     int? votosNulos,
     int? totalSufragantes,
-    String? fotoUrl,
+    String? evidenciaFoto,
     double? latitud,
     double? longitud,
     String? creadoPor,
@@ -137,11 +137,11 @@ class ActaModel extends Equatable {
       id: id ?? this.id,
       jrvId: jrvId ?? this.jrvId,
       cargoElectoral: cargoElectoral ?? this.cargoElectoral,
-      votos: votos ?? this.votos,
+      organizaciones: organizaciones ?? this.organizaciones,
       votosBlancos: votosBlancos ?? this.votosBlancos,
       votosNulos: votosNulos ?? this.votosNulos,
       totalSufragantes: totalSufragantes ?? this.totalSufragantes,
-      fotoUrl: fotoUrl ?? this.fotoUrl,
+      evidenciaFoto: evidenciaFoto ?? this.evidenciaFoto,
       latitud: latitud ?? this.latitud,
       longitud: longitud ?? this.longitud,
       creadoPor: creadoPor ?? this.creadoPor,
@@ -153,8 +153,8 @@ class ActaModel extends Equatable {
 
   @override
   List<Object?> get props => [
-        id, jrvId, cargoElectoral, votos, votosBlancos, votosNulos,
-        totalSufragantes, fotoUrl, latitud, longitud, creadoPor,
+        id, jrvId, cargoElectoral, organizaciones, votosBlancos, votosNulos,
+        totalSufragantes, evidenciaFoto, latitud, longitud, creadoPor,
         editadoPor, fechaEdicion, synced,
       ];
 }

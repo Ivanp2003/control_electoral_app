@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../providers/organizaciones_providers.dart';
+import '../../../../core/presentation/widgets/theme_toggle_button.dart';
 
 /// organizaciones_list_screen.dart
 ///
@@ -13,22 +14,26 @@ class OrganizacionesListScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+
     return DefaultTabController(
       length: 2,
       child: Scaffold(
-        backgroundColor: const Color(0xFF0A1628),
+        backgroundColor: theme.scaffoldBackgroundColor,
         appBar: AppBar(
-          backgroundColor: const Color(0xFF0F2442),
           title: const Text(
             'Organizaciones Políticas',
-            style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+            style: TextStyle(fontWeight: FontWeight.bold),
           ),
-          iconTheme: const IconThemeData(color: Colors.white),
-          bottom: const TabBar(
-            indicatorColor: Color(0xFF4A90D9),
-            labelColor: Color(0xFF4A90D9),
-            unselectedLabelColor: Colors.white54,
-            tabs: [
+          actions: const [
+            ThemeToggleButton(),
+          ],
+          bottom: TabBar(
+            indicatorColor: colorScheme.primary,
+            labelColor: colorScheme.primary,
+            unselectedLabelColor: colorScheme.onSurface.withOpacity(0.54),
+            tabs: const [
               Tab(text: 'Alcalde', icon: Icon(Icons.account_balance_outlined)),
               Tab(text: 'Prefecto', icon: Icon(Icons.domain_outlined)),
             ],
@@ -52,16 +57,19 @@ class _OrganizacionesTab extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final orgsAsync = ref.watch(organizacionesPorCargoProvider(cargo));
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+    final surfaceColor = theme.cardTheme.color ?? colorScheme.surface;
 
     return orgsAsync.when(
-      loading: () => const Center(
+      loading: () => Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            CircularProgressIndicator(color: Color(0xFF4A90D9)),
-            SizedBox(height: 16),
+            CircularProgressIndicator(color: colorScheme.primary),
+            const SizedBox(height: 16),
             Text('Cargando organizaciones...',
-                style: TextStyle(color: Colors.white70)),
+                style: TextStyle(color: colorScheme.onSurface.withOpacity(0.7))),
           ],
         ),
       ),
@@ -74,33 +82,33 @@ class _OrganizacionesTab extends ConsumerWidget {
               const Icon(Icons.wifi_off_rounded,
                   size: 56, color: Colors.redAccent),
               const SizedBox(height: 16),
-              const Text('Error al cargar organizaciones',
+              Text('Error al cargar organizaciones',
                   style: TextStyle(
-                      color: Colors.white,
+                      color: colorScheme.onSurface,
                       fontSize: 16,
                       fontWeight: FontWeight.bold)),
               const SizedBox(height: 8),
               Text(e.toString(),
                   textAlign: TextAlign.center,
-                  style: const TextStyle(color: Colors.white54, fontSize: 13)),
+                  style: TextStyle(color: colorScheme.onSurface.withOpacity(0.54), fontSize: 13)),
             ],
           ),
         ),
       ),
       data: (orgs) {
         if (orgs.isEmpty) {
-          return const Center(
+          return Center(
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
                 Icon(Icons.how_to_vote_outlined,
-                    size: 64, color: Colors.white24),
-                SizedBox(height: 16),
+                    size: 64, color: colorScheme.onSurface.withOpacity(0.24)),
+                const SizedBox(height: 16),
                 Text('Sin organizaciones registradas.',
-                    style: TextStyle(color: Colors.white54, fontSize: 15)),
-                SizedBox(height: 8),
+                    style: TextStyle(color: colorScheme.onSurface.withOpacity(0.54), fontSize: 15)),
+                const SizedBox(height: 8),
                 Text('Ejecuta el Seeder para cargar los datos iniciales.',
-                    style: TextStyle(color: Colors.white38, fontSize: 12)),
+                    style: TextStyle(color: colorScheme.onSurface.withOpacity(0.38), fontSize: 12)),
               ],
             ),
           );
@@ -114,9 +122,9 @@ class _OrganizacionesTab extends ConsumerWidget {
             return Container(
               padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
               decoration: BoxDecoration(
-                color: const Color(0xFF0F2442),
+                color: surfaceColor,
                 borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: Colors.white12),
+                border: Border.all(color: colorScheme.onSurface.withOpacity(0.12)),
               ),
               child: Row(
                 children: [
@@ -124,26 +132,49 @@ class _OrganizacionesTab extends ConsumerWidget {
                     width: 36,
                     height: 36,
                     decoration: BoxDecoration(
-                      color: const Color(0xFF4A90D9).withOpacity(0.15),
+                      color: colorScheme.primary.withOpacity(0.15),
                       borderRadius: BorderRadius.circular(8),
                     ),
                     child: Center(
                       child: Text(
-                        '${i + 1}',
-                        style: const TextStyle(
-                            color: Color(0xFF4A90D9),
+                        org.lista != null ? '${org.lista}' : '${i + 1}',
+                        style: TextStyle(
+                            color: colorScheme.primary,
                             fontWeight: FontWeight.bold),
                       ),
                     ),
                   ),
                   const SizedBox(width: 16),
                   Expanded(
-                    child: Text(
-                      org.nombre,
-                      style: const TextStyle(
-                          color: Colors.white,
-                          fontSize: 15,
-                          fontWeight: FontWeight.w500),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          org.nombre,
+                          style: TextStyle(
+                              color: colorScheme.onSurface,
+                              fontSize: 15,
+                              fontWeight: FontWeight.w500),
+                        ),
+                        if (org.candidatoPrincipal != null && org.candidatoPrincipal!.isNotEmpty) ...[
+                          const SizedBox(height: 4),
+                          Text(
+                            'Principal: ${org.candidatoPrincipal}',
+                            style: TextStyle(
+                                color: colorScheme.onSurface.withOpacity(0.6),
+                                fontSize: 13),
+                          ),
+                        ],
+                        if (org.candidatoSecundario != null && org.candidatoSecundario!.isNotEmpty) ...[
+                          const SizedBox(height: 2),
+                          Text(
+                            'Alterno: ${org.candidatoSecundario}',
+                            style: TextStyle(
+                                color: colorScheme.onSurface.withOpacity(0.5),
+                                fontSize: 12),
+                          ),
+                        ],
+                      ],
                     ),
                   ),
                 ],

@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../providers/auth_providers.dart';
 import '../providers/auth_state.dart';
+import '../../../../core/presentation/widgets/theme_toggle_button.dart';
 
 /// login_screen.dart
 /// 
@@ -43,14 +44,13 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
   Widget build(BuildContext context) {
     final authState = ref.watch(authNotifierProvider);
 
-    // Escuchar errores y mostrarlos mediante snackbar
     ref.listen<AuthState>(authNotifierProvider, (previous, next) {
       next.maybeWhen(
         error: (message) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
               content: Text(message),
-              backgroundColor: const Color(0xFFDE3B3B),
+              backgroundColor: Theme.of(context).colorScheme.error,
             ),
           );
         },
@@ -63,8 +63,12 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
       orElse: () => false,
     );
 
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+    final surfaceColor = theme.cardTheme.color ?? colorScheme.surface;
+
     return Scaffold(
-      backgroundColor: const Color(0xFFF7F9FC),
+      backgroundColor: theme.scaffoldBackgroundColor,
       body: Center(
         child: SingleChildScrollView(
           padding: const EdgeInsets.symmetric(horizontal: 28.0, vertical: 16.0),
@@ -74,27 +78,31 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
               mainAxisAlignment: MainAxisAlignment.center,
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
+                const Align(
+                  alignment: Alignment.topRight,
+                  child: ThemeToggleButton(),
+                ),
                 // Encabezado decorativo electoral
-                const Icon(
+                Icon(
                   Icons.how_to_vote_outlined,
                   size: 80,
-                  color: Color(0xFF0F4C81),
+                  color: colorScheme.primary,
                 ),
                 const SizedBox(height: 16),
-                const Text(
+                Text(
                   'Control Electoral Ecuador',
                   textAlign: TextAlign.center,
                   style: TextStyle(
                     fontSize: 24,
                     fontWeight: FontWeight.bold,
-                    color: Color(0xFF0F4C81),
+                    color: colorScheme.primary,
                   ),
                 ),
                 const SizedBox(height: 8),
-                const Text(
+                Text(
                   'Fase 2: Autenticación de Operadores',
                   textAlign: TextAlign.center,
-                  style: TextStyle(fontSize: 14, color: Colors.grey),
+                  style: TextStyle(fontSize: 14, color: colorScheme.onSurface.withOpacity(0.54)),
                 ),
                 const SizedBox(height: 32),
 
@@ -102,11 +110,11 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                 Container(
                   padding: const EdgeInsets.all(24),
                   decoration: BoxDecoration(
-                    color: Colors.white,
+                    color: surfaceColor,
                     borderRadius: BorderRadius.circular(16),
                     boxShadow: [
                       BoxShadow(
-                        color: Colors.black.withValues(alpha: 0.05),
+                        color: Colors.black.withOpacity(0.05),
                         blurRadius: 10,
                         offset: const Offset(0, 4),
                       ),
@@ -185,8 +193,8 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                               )
                             : ElevatedButton(
                                 style: ElevatedButton.styleFrom(
-                                  backgroundColor: const Color(0xFF0F4C81),
-                                  foregroundColor: Colors.white,
+                                  backgroundColor: colorScheme.primary,
+                                  foregroundColor: colorScheme.onPrimary,
                                   padding: const EdgeInsets.symmetric(vertical: 14),
                                   shape: RoundedRectangleBorder(
                                     borderRadius: BorderRadius.circular(8),
@@ -212,10 +220,10 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                   onPressed: isLoading
                       ? null
                       : () => context.push('/recuperar-password'),
-                  child: const Text(
+                  child: Text(
                     '¿Olvidó su contraseña? Solicite recuperación',
                     style: TextStyle(
-                      color: Color(0xFF0F4C81),
+                      color: colorScheme.primary,
                       fontWeight: FontWeight.w600,
                     ),
                   ),

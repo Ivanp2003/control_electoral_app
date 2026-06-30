@@ -1,6 +1,7 @@
 import 'package:drift/drift.dart';
 import '../../../../database/app_database.dart';
-import '../domain/entities/acta.dart';
+import '../../domain/entities/acta.dart';
+import '../../domain/entities/organizacion_con_votos.dart';
 
 /// actas_local_datasource.dart
 ///

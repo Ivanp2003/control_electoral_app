@@ -80,7 +80,7 @@ final obtenerActasPorJrvUseCaseProvider =
 typedef ObtenerActasPorJrvUseCaseRef =
     AutoDisposeProviderRef<ObtenerActasPorJrvUseCase>;
 String _$registrarActaUseCaseHash() =>
-    r'63540f3d81f0141b63b0d6ea2ddb4c915cf4f6ae';
+    r'5fcaf6556c6188238a415eec266425aac79f7500';
 
 /// See also [registrarActaUseCase].
 @ProviderFor(registrarActaUseCase)
@@ -99,7 +99,7 @@ final registrarActaUseCaseProvider =
 // ignore: unused_element
 typedef RegistrarActaUseCaseRef = AutoDisposeProviderRef<RegistrarActaUseCase>;
 String _$corregirActaUseCaseHash() =>
-    r'7bd93a4ca2a0d217ffae9ad97650a4605b544738';
+    r'c771e3fc2bf98615e7cb8f6d80e6fd95eb98a038';
 
 /// See also [corregirActaUseCase].
 @ProviderFor(corregirActaUseCase)

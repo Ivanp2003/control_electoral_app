@@ -56,4 +56,38 @@ class Acta extends Equatable {
         fechaEdicion,
         synced,
       ];
+
+  Acta copyWith({
+    String? id,
+    String? jrvId,
+    String? cargoElectoral,
+    int? totalSufragantes,
+    int? votosBlancos,
+    int? votosNulos,
+    List<OrganizacionConVotos>? organizaciones,
+    String? evidenciaFoto,
+    double? latitud,
+    double? longitud,
+    String? creadoPor,
+    String? editadoPor,
+    DateTime? fechaEdicion,
+    bool? synced,
+  }) {
+    return Acta(
+      id: id ?? this.id,
+      jrvId: jrvId ?? this.jrvId,
+      cargoElectoral: cargoElectoral ?? this.cargoElectoral,
+      totalSufragantes: totalSufragantes ?? this.totalSufragantes,
+      votosBlancos: votosBlancos ?? this.votosBlancos,
+      votosNulos: votosNulos ?? this.votosNulos,
+      organizaciones: organizaciones ?? this.organizaciones,
+      evidenciaFoto: evidenciaFoto ?? this.evidenciaFoto,
+      latitud: latitud ?? this.latitud,
+      longitud: longitud ?? this.longitud,
+      creadoPor: creadoPor ?? this.creadoPor,
+      editadoPor: editadoPor ?? this.editadoPor,
+      fechaEdicion: fechaEdicion ?? this.fechaEdicion,
+      synced: synced ?? this.synced,
+    );
+  }
 }

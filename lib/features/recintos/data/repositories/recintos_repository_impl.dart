@@ -159,6 +159,15 @@ class RecintosRepositoryImpl implements RecintosRepository {
     return Right(cached);
   }
 
+  @override
+  Future<Either<Failure, Recinto>> obtenerRecintoPorId(String id) async {
+    final cached = await _local.obtenerRecintoPorId(id);
+    if (cached == null) {
+      return const Left(CacheFailure('Recinto no encontrado localmente.'));
+    }
+    return Right(cached);
+  }
+
   // ---------------------------------------------------------------------------
   // JRV
   // ---------------------------------------------------------------------------
@@ -184,6 +193,15 @@ class RecintosRepositoryImpl implements RecintosRepository {
     if (cached.isEmpty) {
       return const Left(
           NoConnectionFailure('Sin conexión y sin datos locales de JRV.'));
+    }
+    return Right(cached);
+  }
+
+  @override
+  Future<Either<Failure, Jrv>> obtenerJrvPorId(String jrvId) async {
+    final cached = await _local.obtenerJrvPorId(jrvId);
+    if (cached == null) {
+      return const Left(CacheFailure('JRV no encontrada localmente.'));
     }
     return Right(cached);
   }

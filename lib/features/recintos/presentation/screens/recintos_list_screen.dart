@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../providers/recintos_providers.dart';
+import '../../../../core/presentation/widgets/theme_toggle_button.dart';
 
 /// recintos_list_screen.dart
 ///
@@ -25,25 +26,29 @@ class _RecintosListScreenState extends ConsumerState<RecintosListScreen> {
   Widget build(BuildContext context) {
     final provinciasAsync = ref.watch(provinciasProvider);
 
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+
     return Scaffold(
-      backgroundColor: const Color(0xFF0A1628),
+      backgroundColor: theme.scaffoldBackgroundColor,
       appBar: AppBar(
-        backgroundColor: const Color(0xFF0F2442),
         title: const Text(
           'Recintos Electorales',
-          style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+          style: TextStyle(fontWeight: FontWeight.bold),
         ),
-        iconTheme: const IconThemeData(color: Colors.white),
+        actions: const [
+          ThemeToggleButton(),
+        ],
       ),
       body: provinciasAsync.when(
-        loading: () => const Center(
+        loading: () => Center(
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              CircularProgressIndicator(color: Color(0xFF4A90D9)),
-              SizedBox(height: 16),
+              CircularProgressIndicator(color: colorScheme.primary),
+              const SizedBox(height: 16),
               Text('Cargando recintos...',
-                  style: TextStyle(color: Colors.white70)),
+                  style: TextStyle(color: colorScheme.onSurface.withOpacity(0.7))),
             ],
           ),
         ),
@@ -75,22 +80,23 @@ class _ProvinciaCard extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final cantonesAsync = ref.watch(cantonesProvider(provinciaId));
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+
     return Card(
-      color: const Color(0xFF0F2442),
       margin: const EdgeInsets.only(bottom: 16),
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       child: ExpansionTile(
-        iconColor: const Color(0xFF4A90D9),
-        collapsedIconColor: Colors.white54,
+        iconColor: colorScheme.primary,
+        collapsedIconColor: colorScheme.onSurface.withOpacity(0.54),
         title: Text(nombre,
-            style: const TextStyle(
-                color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16)),
-        subtitle: const Text('Provincia', style: TextStyle(color: Colors.white54)),
+            style: TextStyle(
+                color: colorScheme.onSurface, fontWeight: FontWeight.bold, fontSize: 16)),
+        subtitle: Text('Provincia', style: TextStyle(color: colorScheme.onSurface.withOpacity(0.54))),
         children: [
           cantonesAsync.when(
-            loading: () => const Padding(
-              padding: EdgeInsets.all(16),
-              child: CircularProgressIndicator(color: Color(0xFF4A90D9)),
+            loading: () => Padding(
+              padding: const EdgeInsets.all(16),
+              child: CircularProgressIndicator(color: colorScheme.primary),
             ),
             error: (e, _) => Padding(
               padding: const EdgeInsets.all(12),
@@ -117,17 +123,20 @@ class _CantonTile extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final parroquiasAsync = ref.watch(parroquiasProvider(cantonId));
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+
     return ExpansionTile(
-      iconColor: const Color(0xFF4A90D9),
-      collapsedIconColor: Colors.white54,
+      iconColor: colorScheme.primary,
+      collapsedIconColor: colorScheme.onSurface.withOpacity(0.54),
       tilePadding: const EdgeInsets.symmetric(horizontal: 24),
-      title: Text(nombre, style: const TextStyle(color: Colors.white70)),
-      subtitle: const Text('Cantón', style: TextStyle(color: Colors.white38, fontSize: 11)),
+      title: Text(nombre, style: TextStyle(color: colorScheme.onSurface.withOpacity(0.7))),
+      subtitle: Text('Cantón', style: TextStyle(color: colorScheme.onSurface.withOpacity(0.38), fontSize: 11)),
       children: [
         parroquiasAsync.when(
-          loading: () => const Padding(
-            padding: EdgeInsets.all(12),
-            child: CircularProgressIndicator(color: Color(0xFF4A90D9)),
+          loading: () => Padding(
+            padding: const EdgeInsets.all(12),
+            child: CircularProgressIndicator(color: colorScheme.primary),
           ),
           error: (e, _) => Padding(
             padding: const EdgeInsets.all(12),
@@ -153,18 +162,21 @@ class _ParroquiaTile extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final recintosAsync = ref.watch(recintosProvider(parroquiaId));
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+
     return ExpansionTile(
-      iconColor: const Color(0xFF4A90D9),
-      collapsedIconColor: Colors.white54,
+      iconColor: colorScheme.primary,
+      collapsedIconColor: colorScheme.onSurface.withOpacity(0.54),
       tilePadding: const EdgeInsets.symmetric(horizontal: 36),
-      title: Text(nombre, style: const TextStyle(color: Colors.white60)),
+      title: Text(nombre, style: TextStyle(color: colorScheme.onSurface.withOpacity(0.6))),
       subtitle:
-          const Text('Parroquia', style: TextStyle(color: Colors.white38, fontSize: 11)),
+          Text('Parroquia', style: TextStyle(color: colorScheme.onSurface.withOpacity(0.38), fontSize: 11)),
       children: [
         recintosAsync.when(
-          loading: () => const Padding(
-            padding: EdgeInsets.all(12),
-            child: CircularProgressIndicator(color: Color(0xFF4A90D9)),
+          loading: () => Padding(
+            padding: const EdgeInsets.all(12),
+            child: CircularProgressIndicator(color: colorScheme.primary),
           ),
           error: (e, _) => Padding(
             padding: const EdgeInsets.all(12),
@@ -173,10 +185,10 @@ class _ParroquiaTile extends ConsumerWidget {
           ),
           data: (recintos) {
             if (recintos.isEmpty) {
-              return const Padding(
-                padding: EdgeInsets.all(16),
+              return Padding(
+                padding: const EdgeInsets.all(16),
                 child: Text('Sin recintos registrados.',
-                    style: TextStyle(color: Colors.white38)),
+                    style: TextStyle(color: colorScheme.onSurface.withOpacity(0.38))),
               );
             }
             return Column(
@@ -184,14 +196,14 @@ class _ParroquiaTile extends ConsumerWidget {
                   .map((r) => ListTile(
                         contentPadding:
                             const EdgeInsets.symmetric(horizontal: 48),
-                        leading: const Icon(Icons.location_on_outlined,
-                            color: Color(0xFF4A90D9), size: 18),
+                        leading: Icon(Icons.location_on_outlined,
+                            color: colorScheme.primary, size: 18),
                         title: Text(r.nombre,
-                            style: const TextStyle(
-                                color: Colors.white, fontSize: 14)),
+                            style: TextStyle(
+                                color: colorScheme.onSurface, fontSize: 14)),
                         subtitle: Text(r.direccion,
-                            style: const TextStyle(
-                                color: Colors.white38, fontSize: 12)),
+                            style: TextStyle(
+                                color: colorScheme.onSurface.withOpacity(0.38), fontSize: 12)),
                       ))
                   .toList(),
             );
@@ -207,17 +219,18 @@ class _EmptyState extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return const Center(
+    final theme = Theme.of(context);
+    return Center(
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(Icons.map_outlined, size: 64, color: Colors.white24),
-          SizedBox(height: 16),
+          Icon(Icons.map_outlined, size: 64, color: theme.colorScheme.onSurface.withOpacity(0.24)),
+          const SizedBox(height: 16),
           Text('No hay recintos registrados.',
-              style: TextStyle(color: Colors.white54, fontSize: 16)),
-          SizedBox(height: 8),
+              style: TextStyle(color: theme.colorScheme.onSurface.withOpacity(0.54), fontSize: 16)),
+          const SizedBox(height: 8),
           Text('Ejecuta el Seeder para cargar los datos iniciales.',
-              style: TextStyle(color: Colors.white38, fontSize: 13)),
+              style: TextStyle(color: theme.colorScheme.onSurface.withOpacity(0.38), fontSize: 13)),
         ],
       ),
     );
@@ -230,6 +243,7 @@ class _ErrorState extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
     return Center(
       child: Padding(
         padding: const EdgeInsets.all(24),
@@ -238,15 +252,15 @@ class _ErrorState extends StatelessWidget {
           children: [
             const Icon(Icons.wifi_off_rounded, size: 64, color: Colors.redAccent),
             const SizedBox(height: 16),
-            const Text('Error al cargar recintos',
+            Text('Error al cargar recintos',
                 style: TextStyle(
-                    color: Colors.white,
+                    color: theme.colorScheme.onSurface,
                     fontSize: 18,
                     fontWeight: FontWeight.bold)),
             const SizedBox(height: 8),
             Text(mensaje,
                 textAlign: TextAlign.center,
-                style: const TextStyle(color: Colors.white54, fontSize: 13)),
+                style: TextStyle(color: theme.colorScheme.onSurface.withOpacity(0.54), fontSize: 13)),
           ],
         ),
       ),

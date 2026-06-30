@@ -24,8 +24,8 @@ class AsyncValueWidget<T> extends StatelessWidget {
     return value.when(
       loading: () =>
           loading ??
-          const Center(
-            child: CircularProgressIndicator(color: Color(0xFF4A90D9)),
+          Center(
+            child: CircularProgressIndicator(color: Theme.of(context).colorScheme.primary),
           ),
       error: (e, st) =>
           error?.call(e, st) ??
@@ -35,13 +35,13 @@ class AsyncValueWidget<T> extends StatelessWidget {
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  const Icon(Icons.error_outline,
-                      size: 56, color: Colors.redAccent),
+                  Icon(Icons.error_outline,
+                      size: 56, color: Theme.of(context).colorScheme.error),
                   const SizedBox(height: 16),
                   Text(e.toString(),
                       textAlign: TextAlign.center,
                       style:
-                          const TextStyle(color: Colors.redAccent, fontSize: 14)),
+                          TextStyle(color: Theme.of(context).colorScheme.error, fontSize: 14)),
                 ],
               ),
             ),

@@ -4,6 +4,8 @@ import 'core/network/appwrite_client.dart';
 import 'database/app_database.dart';
 
 import 'features/auth/presentation/providers/auth_providers.dart';
+import 'core/theme/app_theme.dart';
+import 'core/theme/theme_provider.dart';
 
 /// main.dart
 /// 
@@ -48,19 +50,15 @@ class MyApp extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final router = ref.watch(goRouterProvider);
+    final themeMode = ref.watch(themeNotifierProvider);
 
     return MaterialApp.router(
       routerConfig: router,
       title: 'Control Electoral Ecuador',
       debugShowCheckedModeBanner: false,
-      theme: ThemeData(
-        colorScheme: ColorScheme.fromSeed(
-          seedColor: const Color(0xFF0F4C81), // Azul clásico premium
-          brightness: Brightness.light,
-        ),
-        useMaterial3: true,
-        fontFamily: 'Inter',
-      ),
+      theme: AppTheme.lightTheme,
+      darkTheme: AppTheme.darkTheme,
+      themeMode: themeMode,
     );
   }
 }

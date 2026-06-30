@@ -1,7 +1,8 @@
 import 'dart:convert';
 import 'package:appwrite/appwrite.dart';
 import '../../../../core/constants/appwrite_config.dart';
-import '../domain/entities/acta.dart';
+import '../../domain/entities/acta.dart';
+import '../models/acta_model.dart';
 
 /// actas_remote_datasource.dart
 ///

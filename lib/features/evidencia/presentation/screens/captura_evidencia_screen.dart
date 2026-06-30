@@ -13,6 +13,8 @@ class CapturaEvidenciaScreen extends ConsumerWidget {
     final estado = ref.watch(evidenciaFlowNotifierProvider);
     final notifier = ref.read(evidenciaFlowNotifierProvider.notifier);
     final usuario = ref.watch(currentUserProvider)!;
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
 
     // Ejecuta la transición automática a la cámara si los permisos están
     if (estado.step == EvidenciaStep.permisoCamara) {
@@ -22,14 +24,12 @@ class CapturaEvidenciaScreen extends ConsumerWidget {
     }
 
     return Scaffold(
-      backgroundColor: const Color(0xFF0A1628),
+      backgroundColor: theme.scaffoldBackgroundColor,
       appBar: AppBar(
-        backgroundColor: const Color(0xFF0F2442),
         title: const Text('Evidencia Fotográfica',
-            style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
-        iconTheme: const IconThemeData(color: Colors.white),
+            style: TextStyle(fontWeight: FontWeight.bold)),
         leading: IconButton(
-          icon: const Icon(Icons.close),
+          icon: Icon(Icons.close, color: colorScheme.onSurface),
           onPressed: () => Navigator.pop(context),
         ),
       ),
@@ -51,13 +51,13 @@ class CapturaEvidenciaScreen extends ConsumerWidget {
         );
 
       case EvidenciaStep.permisoCamara:
-        return const Center(
+        return Center(
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              CircularProgressIndicator(color: Color(0xFF4A90D9)),
-              SizedBox(height: 16),
-              Text('Inicializando cámara...', style: TextStyle(color: Colors.white70)),
+              CircularProgressIndicator(color: Theme.of(context).colorScheme.primary),
+              const SizedBox(height: 16),
+              Text('Inicializando cámara...', style: TextStyle(color: Theme.of(context).colorScheme.onSurface.withOpacity(0.7))),
             ],
           ),
         );
@@ -65,7 +65,7 @@ class CapturaEvidenciaScreen extends ConsumerWidget {
       case EvidenciaStep.capturaFoto:
         final controller = notifier.cameraController;
         if (controller == null) {
-          return const Center(child: CircularProgressIndicator(color: Color(0xFF4A90D9)));
+          return Center(child: CircularProgressIndicator(color: Theme.of(context).colorScheme.primary));
         }
         return _CameraPreview(
           controller: controller,
@@ -78,14 +78,14 @@ class CapturaEvidenciaScreen extends ConsumerWidget {
         );
 
       case EvidenciaStep.analisisNitidez:
-        return const Center(
+        return Center(
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              CircularProgressIndicator(color: Color(0xFF4A90D9)),
-              SizedBox(height: 16),
+              CircularProgressIndicator(color: Theme.of(context).colorScheme.primary),
+              const SizedBox(height: 16),
               Text('Analizando nitidez...',
-                  style: TextStyle(color: Colors.white70)),
+                  style: TextStyle(color: Theme.of(context).colorScheme.onSurface.withOpacity(0.7))),
             ],
           ),
         );
@@ -118,6 +118,7 @@ class _GpsGate extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final isLoading = estado.step == EvidenciaStep.capturaGps;
+    final colorScheme = Theme.of(context).colorScheme;
 
     return Center(
       child: Padding(
@@ -125,12 +126,12 @@ class _GpsGate extends StatelessWidget {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            const Icon(Icons.gps_fixed, size: 64, color: Color(0xFF4A90D9)),
+            Icon(Icons.gps_fixed, size: 64, color: colorScheme.primary),
             const SizedBox(height: 24),
-            const Text(
+            Text(
               'Ubicación GPS',
               style: TextStyle(
-                  color: Colors.white,
+                  color: colorScheme.onSurface,
                   fontSize: 20,
                   fontWeight: FontWeight.bold),
             ),
@@ -139,7 +140,7 @@ class _GpsGate extends StatelessWidget {
               estado.error ?? 'Es obligatorio adjuntar tu ubicación GPS al acta para validar la legitimidad del registro.',
               textAlign: TextAlign.center,
               style: TextStyle(
-                color: estado.error != null ? Colors.redAccent : Colors.white54,
+                color: estado.error != null ? colorScheme.error : colorScheme.onSurface.withOpacity(0.54),
                 fontSize: 14,
               ),
             ),
@@ -149,23 +150,23 @@ class _GpsGate extends StatelessWidget {
               height: 52,
               child: ElevatedButton.icon(
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFF4A90D9),
-                  foregroundColor: Colors.white,
+                  backgroundColor: colorScheme.primary,
+                  foregroundColor: colorScheme.onPrimary,
                   shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(12)),
                 ),
                 icon: isLoading
-                    ? const SizedBox(
+                    ? SizedBox(
                         width: 20,
                         height: 20,
                         child: CircularProgressIndicator(
-                          color: Colors.white,
+                          color: colorScheme.onPrimary,
                           strokeWidth: 2,
                         ),
                       )
                     : const Icon(Icons.my_location),
                 label: Text(isLoading ? 'Capturando...' : 'Obtener Ubicación',
-                    style: const TextStyle(fontSize: 16)),
+                    style: TextStyle(fontSize: 16, color: colorScheme.onPrimary)),
                 onPressed: isLoading ? null : onCapturar,
               ),
             ),
@@ -191,6 +192,8 @@ class _CameraPreview extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+
     return Stack(
       children: [
         SizedBox.expand(child: CameraPreview(controller)),
@@ -202,11 +205,11 @@ class _CameraPreview extends StatelessWidget {
             child: Container(
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
-                color: Colors.redAccent.withValues(alpha: 0.9),
+                color: colorScheme.error.withValues(alpha: 0.9),
                 borderRadius: BorderRadius.circular(8),
               ),
               child: Text(estado.error!,
-                  style: const TextStyle(color: Colors.white)),
+                  style: TextStyle(color: colorScheme.onError)),
             ),
           ),
         Positioned(
@@ -218,10 +221,10 @@ class _CameraPreview extends StatelessWidget {
               width: 72,
               height: 72,
               child: FloatingActionButton(
-                backgroundColor: Colors.white,
+                backgroundColor: colorScheme.onSurface,
                 onPressed: onCapture,
                 shape: const CircleBorder(),
-                child: const Icon(Icons.camera_alt, size: 32, color: Colors.black87),
+                child: Icon(Icons.camera_alt, size: 32, color: colorScheme.surface),
               ),
             ),
           ),
@@ -243,6 +246,8 @@ class _EvidenciaCompletada extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+
     return Center(
       child: Padding(
         padding: const EdgeInsets.all(24),
@@ -252,20 +257,20 @@ class _EvidenciaCompletada extends StatelessWidget {
             const Icon(Icons.check_circle_outline,
                 size: 72, color: Colors.greenAccent),
             const SizedBox(height: 24),
-            const Text('Evidencia Capturada',
+            Text('Evidencia Capturada',
                 style: TextStyle(
-                    color: Colors.white,
+                    color: colorScheme.onSurface,
                     fontSize: 22,
                     fontWeight: FontWeight.bold)),
             const SizedBox(height: 12),
-            const Text('La fotografía es nítida y el GPS fue registrado.',
+            Text('La fotografía es nítida y el GPS fue registrado.',
                 textAlign: TextAlign.center,
-                style: TextStyle(color: Colors.white54)),
+                style: TextStyle(color: colorScheme.onSurface.withOpacity(0.54))),
             const SizedBox(height: 8),
             Text(
               'Lat: ${evidencia.latitud.toStringAsFixed(6)}, '
               'Lng: ${evidencia.longitud.toStringAsFixed(6)}',
-              style: const TextStyle(color: Colors.white38, fontSize: 13),
+              style: TextStyle(color: colorScheme.onSurface.withOpacity(0.38), fontSize: 13),
             ),
             const SizedBox(height: 32),
             SizedBox(
@@ -302,31 +307,33 @@ class _ErrorReintentar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+
     return Center(
       child: Padding(
         padding: const EdgeInsets.all(24),
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            const Icon(Icons.error_outline, size: 64, color: Colors.redAccent),
+            Icon(Icons.error_outline, size: 64, color: colorScheme.error),
             const SizedBox(height: 24),
             Text(error,
                 textAlign: TextAlign.center,
-                style: const TextStyle(color: Colors.redAccent, fontSize: 16)),
+                style: TextStyle(color: colorScheme.error, fontSize: 16)),
             const SizedBox(height: 32),
             SizedBox(
               width: double.infinity,
               height: 52,
               child: ElevatedButton.icon(
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFF4A90D9),
-                  foregroundColor: Colors.white,
+                  backgroundColor: colorScheme.primary,
+                  foregroundColor: colorScheme.onPrimary,
                   shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(12)),
                 ),
                 icon: const Icon(Icons.refresh),
-                label: const Text('Reintentar desde el inicio',
-                    style: TextStyle(fontSize: 16)),
+                label: Text('Reintentar desde el inicio',
+                    style: TextStyle(fontSize: 16, color: colorScheme.onPrimary)),
                 onPressed: onReintentar,
               ),
             ),

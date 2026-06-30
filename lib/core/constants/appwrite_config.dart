@@ -39,11 +39,11 @@ class AppwriteConfig {
   static const String collectionCantones = 'cantones';
   static const String collectionParroquias = 'parroquias';
   static const String collectionRecintos = 'recintos';
-  static const String collectionJrv = 'jrv';
-  static const String collectionOrganizacionesPoliticas = 'organizaciones_politicas';
+  static const String collectionJrv = 'jrvs';
+  static const String collectionOrganizacionesPoliticas = 'organizaciones';
   static const String collectionActas = 'actas';
   static const String collectionActaDetalle = 'acta_detalle';
-  static const String collectionEvidenciaFotografica = 'evidencia_fotografica';
+
 
   // --- Fase 3: Colecciones de Jerarquía Geográfica y Configuración ---
 
@@ -60,7 +60,7 @@ class AppwriteConfig {
   
   // --- Storage Buckets ---
   
-  static const String bucketEvidenciaFotografica = 'evidencia_fotografica_bucket';
+  static const String bucketEvidenciaFotografica = 'actas';
 
   // --- Business / Bootstrap Constants ---
 

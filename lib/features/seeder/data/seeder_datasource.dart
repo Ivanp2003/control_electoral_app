@@ -1,7 +1,6 @@
 import 'dart:convert';
 import 'package:appwrite/appwrite.dart';
 import 'package:flutter/services.dart';
-import 'package:uuid/uuid.dart';
 import '../../../core/constants/appwrite_config.dart';
 import '../domain/seeder_resultado.dart';
 
@@ -13,11 +12,16 @@ import '../domain/seeder_resultado.dart';
 
 class SeederDatasource {
   final Databases _databases;
-  final _uuid = const Uuid();
 
   SeederDatasource({required Databases databases}) : _databases = databases;
 
   static const String _db = AppwriteConfig.databaseId;
+
+  String _toSlug(String text) {
+    // Para asegurar que los IDs no excedan 36 caracteres, truncamos el slug y quitamos caracteres raros
+    final slug = text.toLowerCase().replaceAll(RegExp(r'[^a-z0-9]'), '_');
+    return slug.length > 25 ? slug.substring(0, 25) : slug;
+  }
 
   /// Ejecuta la inserción completa de datos del seed_data.json.
   /// Retorna un Stream<String> con mensajes de progreso y completa
@@ -35,12 +39,8 @@ class SeederDatasource {
         (json['parroquias'] as List).map((e) => e as String).toList();
     final recintosData = json['recintos'] as List;
     final jrvPorRecinto = json['jrv_por_recinto'] as int;
-    final organizacionesAlcalde = (json['organizaciones_alcalde'] as List)
-        .map((e) => e as String)
-        .toList();
-    final organizacionesPrefecto = (json['organizaciones_prefecto'] as List)
-        .map((e) => e as String)
-        .toList();
+    final organizacionesAlcalde = json['organizaciones_alcalde'] as List;
+    final organizacionesPrefecto = json['organizaciones_prefecto'] as List;
 
     var provinciasCreadas = 0;
     var cantonesCreados = 0;
@@ -51,7 +51,7 @@ class SeederDatasource {
 
     // ------ Provincia ------
     yield 'Insertando provincia "$nombreProvincia"...';
-    final provinciaId = _uuid.v4();
+    final provinciaId = 'prov_${_toSlug(nombreProvincia)}';
     await _insertarOIgnorar(
       collectionId: AppwriteConfig.collectionProvincias,
       documentId: provinciaId,
@@ -61,7 +61,7 @@ class SeederDatasource {
 
     // ------ Cantón ------
     yield 'Insertando cantón "$nombreCanton"...';
-    final cantonId = _uuid.v4();
+    final cantonId = 'cant_${_toSlug(nombreCanton)}';
     await _insertarOIgnorar(
       collectionId: AppwriteConfig.collectionCantones,
       documentId: cantonId,
@@ -74,7 +74,7 @@ class SeederDatasource {
     for (var i = 0; i < parroquiasNombres.length; i++) {
       final nombre = parroquiasNombres[i];
       yield 'Insertando parroquias... (${i + 1}/${parroquiasNombres.length})';
-      final id = _uuid.v4();
+      final id = 'parr_$i'; // Usar index para garantizar longitud corta
       await _insertarOIgnorar(
         collectionId: AppwriteConfig.collectionParroquias,
         documentId: id,
@@ -93,7 +93,7 @@ class SeederDatasource {
       final parroquiaId = parroquiaIds[parroquiaNombre]!;
 
       yield 'Insertando recintos... (${i + 1}/${recintosData.length})';
-      final recintoId = _uuid.v4();
+      final recintoId = 'rec_$i'; // Índice para garantizar unicidad y longitud corta
       await _insertarOIgnorar(
         collectionId: AppwriteConfig.collectionRecintos,
         documentId: recintoId,
@@ -101,19 +101,27 @@ class SeederDatasource {
           'nombre': nombreRecinto,
           'parroquiaId': parroquiaId,
           'direccion': direccion,
+          'coordinadorId': '', // Inicialmente sin coordinador asignado
         },
       );
       recintosCreados++;
 
       // JRV para este recinto
       for (var j = 0; j < jrvPorRecinto; j++) {
-        final jrvNum = (i * jrvPorRecinto + j + 1).toString().padLeft(3, '0');
+        // Appwrite tiene una regla de validación de 1 a 10 para el campo "numero".
+        // Usaremos numeración por recinto (1, 2, 3...)
+        final jrvNum = j + 1;
         final codigo = 'JRV $jrvNum';
-        yield 'Insertando JRV... ($codigo)';
+        yield 'Insertando JRV... ($codigo en $recintoId)';
+        final jrvId = 'jrv_${recintoId}_$jrvNum'; // jrv_rec_0_1 -> cabe en 36 chars
         await _insertarOIgnorar(
           collectionId: AppwriteConfig.collectionJrv,
-          documentId: _uuid.v4(),
-          data: {'codigo': codigo, 'recintoId': recintoId},
+          documentId: jrvId,
+          data: {
+            'codigo': codigo, 
+            'recintoId': recintoId,
+            'numero': jrvNum, // Si requiere numero Integer según el user
+          },
         );
         jrvCreadas++;
       }
@@ -123,26 +131,54 @@ class SeederDatasource {
     final totalOrgs =
         organizacionesAlcalde.length + organizacionesPrefecto.length;
     var orgCount = 0;
-    for (final nombre in organizacionesAlcalde) {
+    for (final orgJson in organizacionesAlcalde) {
       orgCount++;
+      final nombre = orgJson['nombre'] as String;
+      final lista = orgJson['lista'] as int;
       yield 'Insertando organizaciones... ($orgCount/$totalOrgs)';
       await _insertarOIgnorar(
         collectionId: AppwriteConfig.collectionOrganizacionesPoliticas,
-        documentId: _uuid.v4(),
-        data: {'nombre': nombre, 'cargo': 'alcalde'},
+        documentId: 'org_alcalde_$lista',
+        data: {
+          'lista': lista,
+          'nombre': nombre, 
+          'cargo': 'alcalde',
+          'candidatoPrincipal': orgJson['candidatoPrincipal'] as String,
+          'candidatoSecundario': orgJson['candidatoSecundario'] as String,
+        },
       );
       organizacionesCreadas++;
     }
-    for (final nombre in organizacionesPrefecto) {
+    for (final orgJson in organizacionesPrefecto) {
       orgCount++;
+      final nombre = orgJson['nombre'] as String;
+      final lista = orgJson['lista'] as int;
       yield 'Insertando organizaciones... ($orgCount/$totalOrgs)';
       await _insertarOIgnorar(
         collectionId: AppwriteConfig.collectionOrganizacionesPoliticas,
-        documentId: _uuid.v4(),
-        data: {'nombre': nombre, 'cargo': 'prefecto'},
+        documentId: 'org_prefecto_$lista',
+        data: {
+          'lista': lista,
+          'nombre': nombre, 
+          'cargo': 'prefecto',
+          'candidatoPrincipal': orgJson['candidatoPrincipal'] as String,
+          'candidatoSecundario': orgJson['candidatoSecundario'] as String,
+        },
       );
       organizacionesCreadas++;
     }
+
+    // ------ Config Sistema ------
+    yield 'Marcando ejecución en config_sistema...';
+    await _insertarOIgnorar(
+      collectionId: AppwriteConfig.collectionConfigSistema,
+      documentId: AppwriteConfig.seederFlagKey,
+      data: {
+        'clave': AppwriteConfig.seederFlagKey,
+        'valor': 'true',
+        'actualizadoEn': DateTime.now().toIso8601String(),
+      },
+    );
 
     yield 'Finalizando...';
     onCompleted(SeederResultado(

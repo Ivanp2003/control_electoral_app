@@ -16,6 +16,7 @@ import '../../domain/entities/organizacion_con_votos.dart';
 import '../../domain/usecases/registrar_acta_usecase.dart';
 import '../providers/actas_providers.dart';
 import '../../../sync/presentation/widgets/sync_indicator.dart';
+import '../../../../core/presentation/widgets/theme_toggle_button.dart';
 
 class RegistrarActaScreen extends ConsumerStatefulWidget {
   const RegistrarActaScreen({super.key});
@@ -80,14 +81,17 @@ class _RegistrarActaScreenState extends ConsumerState<RegistrarActaScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+
     return Scaffold(
-      backgroundColor: const Color(0xFF0A1628),
+      backgroundColor: theme.scaffoldBackgroundColor,
       appBar: AppBar(
-        backgroundColor: const Color(0xFF0F2442),
         title: const Text('Registrar Acta',
-            style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
-        iconTheme: const IconThemeData(color: Colors.white),
-        actions: const [SyncIndicator()],
+            style: TextStyle(fontWeight: FontWeight.bold)),
+        actions: const [
+          ThemeToggleButton(),
+          SyncIndicator(),
+        ],
       ),
       body: _buildBody(),
     );
@@ -108,17 +112,21 @@ class _RegistrarActaScreenState extends ConsumerState<RegistrarActaScreen> {
 
   Widget _PasoSeleccionarJrv() {
     final usuario = ref.watch(currentUserProvider);
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+    final surfaceColor = theme.cardTheme.color ?? colorScheme.surface;
+
     if (usuario == null) {
-      return const Center(child: Text('No autenticado',
-          style: TextStyle(color: Colors.white54)));
+      return Center(child: Text('No autenticado',
+          style: TextStyle(color: colorScheme.onSurface.withOpacity(0.54))));
     }
 
     return FutureBuilder<List<JrvModel>>(
       future: _obtenerJrvDisponibles(usuario.id, usuario.rol),
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {
-          return const Center(child: CircularProgressIndicator(
-              color: Color(0xFF4A90D9)));
+          return Center(child: CircularProgressIndicator(
+              color: colorScheme.primary));
         }
         if (snapshot.hasError) {
           return Center(
@@ -131,9 +139,9 @@ class _RegistrarActaScreenState extends ConsumerState<RegistrarActaScreen> {
         }
         final jrvList = snapshot.data ?? [];
         if (jrvList.isEmpty) {
-          return const Center(
+          return Center(
             child: Text('No tienes JRV asignadas.',
-                style: TextStyle(color: Colors.white54, fontSize: 16)),
+                style: TextStyle(color: colorScheme.onSurface.withOpacity(0.54), fontSize: 16)),
           );
         }
         return ListView.builder(
@@ -142,16 +150,13 @@ class _RegistrarActaScreenState extends ConsumerState<RegistrarActaScreen> {
           itemBuilder: (context, index) {
             final jrv = jrvList[index];
             return Card(
-              color: const Color(0xFF0F2442),
+              color: surfaceColor,
               margin: const EdgeInsets.only(bottom: 12),
-              shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12)),
               child: ListTile(
                 title: Text(jrv.codigo,
-                    style: const TextStyle(
-                        color: Colors.white, fontWeight: FontWeight.bold)),
-                trailing: const Icon(Icons.chevron_right_rounded,
-                    color: Color(0xFF4A90D9)),
+                    style: TextStyle(
+                        color: colorScheme.onSurface, fontWeight: FontWeight.bold)),
+                trailing: Icon(Icons.chevron_right, color: colorScheme.onSurface.withOpacity(0.54)),
                 onTap: () {
                   setState(() {
                     _jrvSeleccionado = jrv;
@@ -191,14 +196,17 @@ class _RegistrarActaScreenState extends ConsumerState<RegistrarActaScreen> {
   }
 
   Widget _PasoLlenarDatos() {
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+
     return SingleChildScrollView(
       padding: const EdgeInsets.all(16),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text('JRV: ${_jrvSeleccionado?.codigo ?? ""}',
-              style: const TextStyle(
-                  color: Colors.white70,
+              style: TextStyle(
+                  color: colorScheme.onSurface.withOpacity(0.7),
                   fontSize: 14)),
           const SizedBox(height: 8),
           // Selector de cargo
@@ -219,12 +227,12 @@ class _RegistrarActaScreenState extends ConsumerState<RegistrarActaScreen> {
           ),
           const SizedBox(height: 20),
           if (_organizaciones.isEmpty)
-            const Center(child: CircularProgressIndicator(
-                color: Color(0xFF4A90D9)))
+            Center(child: CircularProgressIndicator(
+                color: colorScheme.primary))
           else ...[
-            const Text('VOTOS POR ORGANIZACIÓN',
+            Text('VOTOS POR ORGANIZACIÓN',
                 style: TextStyle(
-                    color: Colors.white38,
+                    color: colorScheme.onSurface.withOpacity(0.38),
                     fontSize: 11,
                     letterSpacing: 1.5)),
             const SizedBox(height: 8),
@@ -232,14 +240,14 @@ class _RegistrarActaScreenState extends ConsumerState<RegistrarActaScreen> {
                   label: org.nombre,
                   controller: _votosControllers[org.id]!,
                 )),
-            const Divider(color: Colors.white12, height: 24),
+            Divider(color: colorScheme.onSurface.withOpacity(0.12), height: 24),
             _VotoField(
                 label: 'Votos en Blanco',
                 controller: _blancosCtrl),
             _VotoField(
                 label: 'Votos Nulos',
                 controller: _nulosCtrl),
-            const Divider(color: Colors.white12, height: 24),
+            Divider(color: colorScheme.onSurface.withOpacity(0.12), height: 24),
             _VotoField(
                 label: 'Total Sufragantes',
                 controller: _totalCtrl),
@@ -261,18 +269,18 @@ class _RegistrarActaScreenState extends ConsumerState<RegistrarActaScreen> {
               height: 52,
               child: ElevatedButton(
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFF4A90D9),
-                  foregroundColor: Colors.white,
+                  backgroundColor: colorScheme.primary,
+                  foregroundColor: colorScheme.onPrimary,
                   shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(12)),
                 ),
                 onPressed: _guardando ? null : _validarYResumir,
                 child: _guardando
-                    ? const SizedBox(
+                    ? SizedBox(
                         width: 24,
                         height: 24,
                         child: CircularProgressIndicator(
-                            strokeWidth: 2, color: Colors.white))
+                            strokeWidth: 2, color: colorScheme.onPrimary))
                     : const Text('Validar y Continuar',
                         style: TextStyle(
                             fontSize: 16, fontWeight: FontWeight.bold)),
@@ -315,26 +323,29 @@ class _RegistrarActaScreenState extends ConsumerState<RegistrarActaScreen> {
   }
 
   Widget _PasoEvidencia() {
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+
     return Center(
       child: Padding(
         padding: const EdgeInsets.all(24),
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            const Icon(Icons.camera_alt_outlined,
-                size: 72, color: Color(0xFF4A90D9)),
+            Icon(Icons.camera_alt_outlined,
+                size: 72, color: colorScheme.primary),
             const SizedBox(height: 24),
-            const Text('Evidencia Fotográfica',
+            Text('Evidencia Fotográfica',
                 style: TextStyle(
-                    color: Colors.white,
+                    color: colorScheme.onSurface,
                     fontSize: 20,
                     fontWeight: FontWeight.bold)),
             const SizedBox(height: 12),
-            const Text(
+            Text(
               'Captura una fotografía nítida del acta '
               'y registra tu ubicación GPS.',
               textAlign: TextAlign.center,
-              style: TextStyle(color: Colors.white54, fontSize: 14),
+              style: TextStyle(color: colorScheme.onSurface.withOpacity(0.54), fontSize: 14),
             ),
             const SizedBox(height: 32),
             if (_evidencia != null)
@@ -351,8 +362,8 @@ class _RegistrarActaScreenState extends ConsumerState<RegistrarActaScreen> {
                     height: 52,
                     child: ElevatedButton(
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color(0xFF4A90D9),
-                        foregroundColor: Colors.white,
+                        backgroundColor: colorScheme.primary,
+                        foregroundColor: colorScheme.onPrimary,
                         shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(12)),
                       ),
@@ -370,8 +381,8 @@ class _RegistrarActaScreenState extends ConsumerState<RegistrarActaScreen> {
                 height: 52,
                 child: ElevatedButton.icon(
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFF4A90D9),
-                    foregroundColor: Colors.white,
+                    backgroundColor: colorScheme.primary,
+                    foregroundColor: colorScheme.onPrimary,
                     shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(12)),
                   ),
@@ -385,8 +396,8 @@ class _RegistrarActaScreenState extends ConsumerState<RegistrarActaScreen> {
             TextButton(
               onPressed: () =>
                   setState(() => _paso = _PasoRegistro.llenarDatos),
-              child: const Text('Omitir y volver',
-                  style: TextStyle(color: Colors.white38)),
+              child: Text('Omitir y volver',
+                  style: TextStyle(color: colorScheme.onSurface.withOpacity(0.38))),
             ),
           ],
         ),
@@ -420,20 +431,23 @@ class _RegistrarActaScreenState extends ConsumerState<RegistrarActaScreen> {
     final nulos = int.tryParse(_nulosCtrl.text) ?? 0;
     final total = int.tryParse(_totalCtrl.text) ?? 0;
 
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+
     return SingleChildScrollView(
       padding: const EdgeInsets.all(16),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text('Resumen - ${_cargoSeleccionado == 'alcalde' ? 'Alcalde' : 'Prefecto'}',
-              style: const TextStyle(
-                  color: Colors.white,
+              style: TextStyle(
+                  color: colorScheme.onSurface,
                   fontSize: 18,
                   fontWeight: FontWeight.bold)),
           const SizedBox(height: 8),
           Text('JRV: ${_jrvSeleccionado?.codigo ?? ""}',
-              style: const TextStyle(color: Colors.white54)),
-          const Divider(color: Colors.white12),
+              style: TextStyle(color: colorScheme.onSurface.withOpacity(0.54))),
+          Divider(color: colorScheme.onSurface.withOpacity(0.12)),
           ..._organizaciones.map((org) => Padding(
                 padding: const EdgeInsets.symmetric(vertical: 4),
                 child: Row(
@@ -441,37 +455,39 @@ class _RegistrarActaScreenState extends ConsumerState<RegistrarActaScreen> {
                   children: [
                     Expanded(
                         child: Text(org.nombre,
-                            style: const TextStyle(color: Colors.white70))),
+                            style: TextStyle(color: colorScheme.onSurface.withOpacity(0.7)))),
                     Text(
                         '${_votosControllers[org.id]?.text ?? "0"}',
-                        style: const TextStyle(
-                            color: Colors.white,
+                        style: TextStyle(
+                            color: colorScheme.onSurface,
                             fontWeight: FontWeight.bold)),
                   ],
                 ),
               )),
-          const Divider(color: Colors.white12),
+          Divider(color: colorScheme.onSurface.withOpacity(0.12)),
           _ResumenLinea(
-              label: 'Blancos', valor: blancos.toString()),
+              label: 'Blancos', valor: blancos.toString(), colorScheme: colorScheme),
           _ResumenLinea(
-              label: 'Nulos', valor: nulos.toString()),
+              label: 'Nulos', valor: nulos.toString(), colorScheme: colorScheme),
           _ResumenLinea(
               label: 'Total Sufragantes',
               valor: total.toString(),
-              destacado: true),
+              destacado: true,
+              colorScheme: colorScheme),
           if (_evidencia != null) ...[
-            const Divider(color: Colors.white12),
-            const Text('EVIDENCIA',
+            Divider(color: colorScheme.onSurface.withOpacity(0.12)),
+            Text('EVIDENCIA',
                 style: TextStyle(
-                    color: Colors.white38,
+                    color: colorScheme.onSurface.withOpacity(0.38),
                     fontSize: 11,
                     letterSpacing: 1.5)),
             const SizedBox(height: 4),
             _ResumenLinea(
                 label: 'Ubicación',
                 valor:
-                    '${_evidencia!.latitud.toStringAsFixed(4)}, ${_evidencia!.longitud.toStringAsFixed(4)}'),
-            _ResumenLinea(label: 'Foto', valor: 'Capturada ✓'),
+                    '${_evidencia!.latitud.toStringAsFixed(4)}, ${_evidencia!.longitud.toStringAsFixed(4)}',
+                colorScheme: colorScheme),
+            _ResumenLinea(label: 'Foto', valor: 'Capturada ✓', colorScheme: colorScheme),
           ],
           const SizedBox(height: 24),
           SizedBox(
@@ -503,8 +519,8 @@ class _RegistrarActaScreenState extends ConsumerState<RegistrarActaScreen> {
             child: TextButton(
               onPressed: () =>
                   setState(() => _paso = _PasoRegistro.evidencia),
-              child: const Text('Volver y corregir',
-                  style: TextStyle(color: Colors.white54)),
+              child: Text('Volver y corregir',
+                  style: TextStyle(color: colorScheme.onSurface.withOpacity(0.54))),
             ),
           ),
         ],
@@ -583,6 +599,9 @@ class _CargoBoton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+    final surfaceColor = Theme.of(context).cardTheme.color ?? colorScheme.surface;
+
     return Expanded(
       child: GestureDetector(
         onTap: onTap,
@@ -590,20 +609,20 @@ class _CargoBoton extends StatelessWidget {
           padding: const EdgeInsets.symmetric(vertical: 12),
           decoration: BoxDecoration(
             color: selected
-                ? const Color(0xFF4A90D9)
-                : const Color(0xFF0F2442),
+                ? colorScheme.primary
+                : surfaceColor,
             borderRadius: BorderRadius.circular(8),
             border: Border.all(
               color: selected
-                  ? const Color(0xFF4A90D9)
-                  : Colors.white24,
+                  ? colorScheme.primary
+                  : colorScheme.onSurface.withOpacity(0.24),
             ),
           ),
           child: Text(
             label,
             textAlign: TextAlign.center,
             style: TextStyle(
-              color: selected ? Colors.white : Colors.white54,
+              color: selected ? colorScheme.onPrimary : colorScheme.onSurface.withOpacity(0.54),
               fontWeight: selected ? FontWeight.bold : FontWeight.normal,
             ),
           ),
@@ -620,24 +639,27 @@ class _VotoField extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+    final surfaceColor = Theme.of(context).cardTheme.color ?? colorScheme.surface;
+
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 6),
       child: Row(
         children: [
           Expanded(
             child: Text(label,
-                style: const TextStyle(color: Colors.white70, fontSize: 14)),
+                style: TextStyle(color: colorScheme.onSurface.withOpacity(0.7), fontSize: 14)),
           ),
           SizedBox(
             width: 100,
             child: TextField(
               controller: controller,
               keyboardType: TextInputType.number,
-              style: const TextStyle(color: Colors.white),
+              style: TextStyle(color: colorScheme.onSurface),
               decoration: InputDecoration(
                 isDense: true,
                 filled: true,
-                fillColor: const Color(0xFF0F2442),
+                fillColor: surfaceColor,
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(8),
                   borderSide: BorderSide.none,
@@ -655,10 +677,12 @@ class _ResumenLinea extends StatelessWidget {
   final String label;
   final String valor;
   final bool destacado;
+  final ColorScheme colorScheme;
   const _ResumenLinea(
       {required this.label,
       required this.valor,
-      this.destacado = false});
+      this.destacado = false,
+      required this.colorScheme});
 
   @override
   Widget build(BuildContext context) {
@@ -669,14 +693,14 @@ class _ResumenLinea extends StatelessWidget {
         children: [
           Text(label,
               style: TextStyle(
-                  color: destacado ? Colors.white : Colors.white70,
+                  color: destacado ? colorScheme.onSurface : colorScheme.onSurface.withOpacity(0.7),
                   fontWeight:
                       destacado ? FontWeight.bold : FontWeight.normal)),
           Text(valor,
               style: TextStyle(
                   color: destacado
-                      ? const Color(0xFF4A90D9)
-                      : Colors.white,
+                      ? colorScheme.primary
+                      : colorScheme.onSurface,
                   fontWeight:
                       destacado ? FontWeight.bold : FontWeight.normal)),
         ],

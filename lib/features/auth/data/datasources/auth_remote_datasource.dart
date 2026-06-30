@@ -177,19 +177,22 @@ class AuthRemoteDatasourceImpl implements AuthRemoteDatasource {
       }),
     );
 
-    if (execution.status == 'failed') {
-      throw Exception('Error de ejecución en servidor al crear usuario.');
+    if (execution.status == 'failed' && execution.responseBody.isEmpty) {
+      throw Exception('Error crítico en la función: ${execution.errors}');
     }
 
     final responseMap = jsonDecode(execution.responseBody) as Map<String, dynamic>;
-    if (responseMap.containsKey('error')) {
-      final errorMsg = responseMap['error'] as String;
-      if (errorMsg.contains('cedula_duplicada')) {
+    
+    if (!responseMap['success']) {
+      final errorMsg = responseMap['error'] as String?;
+      if (errorMsg == 'invalid_cedula') {
+        throw Exception('La cédula ingresada no es válida.');
+      } else if (errorMsg == 'already_exists') {
         throw CedulaDuplicadaException();
-      } else if (errorMsg.contains('correo_duplicado')) {
+      } else if (errorMsg == 'auth_already_exists') {
         throw CorreoDuplicadoException();
       }
-      throw Exception(errorMsg);
+      throw Exception(responseMap['message'] ?? 'Error desconocido del servidor');
     }
   }
 }

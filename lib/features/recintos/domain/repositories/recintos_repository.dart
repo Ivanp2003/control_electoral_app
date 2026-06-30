@@ -26,8 +26,14 @@ abstract class RecintosRepository {
   /// Obtiene los recintos pertenecientes a una parroquia.
   Future<Either<Failure, List<Recinto>>> obtenerRecintos(String parroquiaId);
 
+  /// Obtiene un recinto específico por su ID.
+  Future<Either<Failure, Recinto>> obtenerRecintoPorId(String id);
+
   /// Obtiene las JRV pertenecientes a un recinto electoral.
   Future<Either<Failure, List<Jrv>>> obtenerJrvPorRecinto(String recintoId);
+
+  /// Obtiene una JRV específica por su ID.
+  Future<Either<Failure, Jrv>> obtenerJrvPorId(String jrvId);
 
   /// Crea un nuevo recinto electoral en el servidor remoto.
   /// Requiere que el Use Case haya verificado el permiso puedeCrearRecintos

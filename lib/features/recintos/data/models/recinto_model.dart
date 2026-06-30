@@ -13,6 +13,7 @@ class RecintoModel extends Recinto {
     required super.direccion,
     super.latRef,
     super.lonRef,
+    super.coordinadorId,
   });
 
   factory RecintoModel.fromAppwriteDoc(Map<String, dynamic> doc) {
@@ -23,6 +24,7 @@ class RecintoModel extends Recinto {
       direccion: doc['direccion'] as String,
       latRef: (doc['latRef'] as num?)?.toDouble(),
       lonRef: (doc['lonRef'] as num?)?.toDouble(),
+      coordinadorId: doc['coordinadorId'] as String?,
     );
   }
 
@@ -33,6 +35,7 @@ class RecintoModel extends Recinto {
     String direccion,
     double? latRef,
     double? lonRef,
+    String? coordinadorId,
   }) data) {
     return RecintoModel(
       id: data.id,
@@ -41,6 +44,7 @@ class RecintoModel extends Recinto {
       direccion: data.direccion,
       latRef: data.latRef,
       lonRef: data.lonRef,
+      coordinadorId: data.coordinadorId,
     );
   }
 
@@ -50,5 +54,6 @@ class RecintoModel extends Recinto {
         'direccion': direccion,
         if (latRef != null) 'latRef': latRef,
         if (lonRef != null) 'lonRef': lonRef,
+        if (coordinadorId != null) 'coordinadorId': coordinadorId,
       };
 }

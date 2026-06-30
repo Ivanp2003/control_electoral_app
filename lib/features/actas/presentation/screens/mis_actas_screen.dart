@@ -6,6 +6,7 @@ import '../../domain/entities/acta.dart';
 import '../providers/actas_providers.dart';
 import '../../../../database/app_database.dart';
 import '../../../sync/presentation/widgets/sync_indicator.dart';
+import '../../../../core/presentation/widgets/theme_toggle_button.dart';
 
 class MisActasScreen extends ConsumerWidget {
   const MisActasScreen({super.key});
@@ -14,10 +15,9 @@ class MisActasScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final usuario = ref.watch(currentUserProvider);
     if (usuario == null) {
-      return const Scaffold(
-        backgroundColor: Color(0xFF0A1628),
+      return Scaffold(
         body: Center(child: Text('No autenticado',
-            style: TextStyle(color: Colors.white54))),
+            style: TextStyle(color: Theme.of(context).colorScheme.onSurface.withOpacity(0.54)))),
       );
     }
 
@@ -25,21 +25,25 @@ class MisActasScreen extends ConsumerWidget {
     // Para la vista "Mis Actas", mostramos todas las actas registradas localmente.
     final future = db.select(db.actasLocal).get();
 
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+
     return Scaffold(
-      backgroundColor: const Color(0xFF0A1628),
+      backgroundColor: theme.scaffoldBackgroundColor,
       appBar: AppBar(
-        backgroundColor: const Color(0xFF0F2442),
         title: const Text('Mis Actas',
-            style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
-        iconTheme: const IconThemeData(color: Colors.white),
-        actions: const [SyncIndicator()],
+            style: TextStyle(fontWeight: FontWeight.bold)),
+        actions: const [
+          ThemeToggleButton(),
+          SyncIndicator(),
+        ],
       ),
       body: FutureBuilder(
         future: future,
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
-            return const Center(child: CircularProgressIndicator(
-                color: Color(0xFF4A90D9)));
+            return Center(child: CircularProgressIndicator(
+                color: colorScheme.primary));
           }
           if (snapshot.hasError) {
             return Center(
@@ -52,16 +56,16 @@ class MisActasScreen extends ConsumerWidget {
           }
           final actas = snapshot.data;
           if (actas == null || actas.isEmpty) {
-            return const Center(
+            return Center(
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
                   Icon(Icons.description_outlined,
-                      size: 64, color: Colors.white24),
-                  SizedBox(height: 16),
+                      size: 64, color: colorScheme.onSurface.withOpacity(0.24)),
+                  const SizedBox(height: 16),
                   Text('No hay actas registradas.',
                       style: TextStyle(
-                          color: Colors.white54, fontSize: 16)),
+                          color: colorScheme.onSurface.withOpacity(0.54), fontSize: 16)),
                 ],
               ),
             );
@@ -100,12 +104,15 @@ class _ActaCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+    final surfaceColor = theme.cardTheme.color ?? colorScheme.surface;
+
     final cargoLabel =
         acta.cargoElectoral == 'alcalde' ? 'Alcalde' : 'Prefecto';
     return Card(
-      color: const Color(0xFF0F2442),
+      color: surfaceColor,
       margin: const EdgeInsets.only(bottom: 12),
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       child: Padding(
         padding: const EdgeInsets.all(16),
         child: Column(
@@ -115,8 +122,8 @@ class _ActaCard extends StatelessWidget {
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 Text(cargoLabel,
-                    style: const TextStyle(
-                        color: Color(0xFF4A90D9),
+                    style: TextStyle(
+                        color: colorScheme.primary,
                         fontWeight: FontWeight.bold,
                         fontSize: 16)),
                 Container(
@@ -140,11 +147,11 @@ class _ActaCard extends StatelessWidget {
             ),
             const SizedBox(height: 8),
             Text('Total sufragantes: ${acta.totalSufragantes}',
-                style: const TextStyle(color: Colors.white70, fontSize: 13)),
+                style: TextStyle(color: colorScheme.onSurface.withOpacity(0.7), fontSize: 13)),
             if (acta.editadoPor != null)
               Text('Editado por: ${acta.editadoPor}',
-                  style: const TextStyle(
-                      color: Colors.white38, fontSize: 11)),
+                  style: TextStyle(
+                      color: colorScheme.onSurface.withOpacity(0.38), fontSize: 11)),
           ],
         ),
       ),

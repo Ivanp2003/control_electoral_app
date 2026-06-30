@@ -6,7 +6,7 @@ part of 'sync_orchestrator_provider.dart';
 // RiverpodGenerator
 // **************************************************************************
 
-String _$syncOrchestratorHash() => r'fd0861bfd87c119f07f8a1d9ee0a311b516250c9';
+String _$syncOrchestratorHash() => r'aced102d06d520d3466a302bbd28009535c21acc';
 
 /// Un provider que orquesta la sincronización escuchando los cambios de conexión.
 ///

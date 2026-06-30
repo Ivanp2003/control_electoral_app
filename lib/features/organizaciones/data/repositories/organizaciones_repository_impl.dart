@@ -1,5 +1,6 @@
 import 'package:appwrite/appwrite.dart';
 import 'package:dartz/dartz.dart';
+import 'package:drift/drift.dart' hide Column;
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 import '../../../../core/errors/failures.dart';
 import '../../../../core/network/appwrite_client.dart';
@@ -45,6 +46,9 @@ class OrganizacionesRepositoryImpl implements OrganizacionesRepository {
               id: org.id,
               nombre: org.nombre,
               cargo: org.cargo,
+              lista: Value(org.lista),
+              candidatoPrincipal: Value(org.candidatoPrincipal),
+              candidatoSecundario: Value(org.candidatoSecundario),
             ));
           }
         });
@@ -64,8 +68,14 @@ class OrganizacionesRepositoryImpl implements OrganizacionesRepository {
           'Sin conexión y sin organizaciones en caché local.'));
     }
     return Right(rows
-        .map((r) => OrganizacionPoliticaModel.fromLocalData(
-            (id: r.id, nombre: r.nombre, cargo: r.cargo)))
+        .map((r) => OrganizacionPoliticaModel.fromLocalData((
+              id: r.id, 
+              nombre: r.nombre, 
+              cargo: r.cargo,
+              lista: r.lista,
+              candidatoPrincipal: r.candidatoPrincipal,
+              candidatoSecundario: r.candidatoSecundario,
+            )))
         .toList());
   }
 }
