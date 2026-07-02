@@ -108,10 +108,10 @@ class AuthNotifier extends _$AuthNotifier {
   }
 
   /// Solicita el envío de un correo con enlace de recuperación.
-  Future<bool> solicitarRecuperacion(String email, String redirectUrl) async {
+  Future<bool> solicitarRecuperacion(String identificador) async {
     state = const AuthState.loading();
     final useCase = ref.read(solicitarRecuperacionUseCaseProvider);
-    final result = await useCase(email, redirectUrl);
+    final result = await useCase(identificador);
 
     return result.fold(
       (failure) {
@@ -288,8 +288,10 @@ GoRouter goRouter(GoRouterRef ref) {
           !esCoordinadorRecinto) {
         return '/home';
       }
-      // /actas/asignar-veedores: solo coordRecinto.
-      if (matchedPath == '/actas/asignar-veedores' && !esCoordinadorRecinto) {
+      // /actas/asignar-veedores: coordRecinto y coordProvincial.
+      if (matchedPath == '/actas/asignar-veedores' && 
+          !esCoordinadorRecinto && 
+          !esCoordinadorProvincial) {
         return '/home';
       }
 
@@ -471,12 +473,6 @@ class _HomeScreen extends ConsumerWidget {
                 label: 'Asignar Coordinador de Recinto',
                 subtitle: 'Vincular un coordinador a un recinto',
                 onTap: () => context.push('/usuarios/asignar-coordinador'),
-              ),
-              _NavCard(
-                icon: Icons.people_outline,
-                label: 'Asignar Veedores a JRV',
-                subtitle: 'Vincular veedores con sus mesas',
-                onTap: () => context.push('/actas/asignar-veedores'),
               ),
               _NavCard(
                 icon: Icons.person_add_outlined,

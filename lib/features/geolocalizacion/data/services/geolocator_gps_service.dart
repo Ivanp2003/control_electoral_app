@@ -46,20 +46,32 @@ class GeolocatorGpsService implements GpsService {
   @override
   Future<Either<Failure, GpsData>> capturarCoordenadas() async {
     try {
-      final pos = await Geolocator.getCurrentPosition(
-        locationSettings: const LocationSettings(
-          accuracy: LocationAccuracy.high,
-          timeLimit: Duration(seconds: 15),
-        ),
-      );
+      Position? pos;
+      try {
+        pos = await Geolocator.getCurrentPosition(
+          locationSettings: const LocationSettings(
+            accuracy: LocationAccuracy.high,
+            timeLimit: Duration(seconds: 10),
+          ),
+        );
+      } catch (e) {
+        // Fallback to last known position if timeout or error (offline scenario)
+        pos = await Geolocator.getLastKnownPosition();
+      }
+
+      if (pos == null) {
+        return const Left(GpsGateFailure('No se pudo obtener la ubicación GPS (posiblemente fuera de línea y sin historial).'));
+      }
 
       return Right(GpsData(
         latitud: pos.latitude,
         longitud: pos.longitude,
         precision: pos.accuracy,
       ));
+    } on Failure catch (e) {
+      return Left(e);
     } catch (e) {
-      return Left(GpsGateFailure('Error al capturar coordenadas GPS: $e'));
+      return Left(GpsGateFailure('Error al capturar coordenadas: $e'));
     }
   }
 }

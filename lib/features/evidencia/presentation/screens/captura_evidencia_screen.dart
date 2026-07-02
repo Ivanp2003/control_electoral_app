@@ -1,4 +1,4 @@
-import 'package:camera/camera.dart';
+// Removed camera import
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../auth/presentation/providers/auth_providers.dart';
@@ -20,6 +20,12 @@ class CapturaEvidenciaScreen extends ConsumerWidget {
     if (estado.step == EvidenciaStep.permisoCamara) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
         notifier.inicializarCamara();
+      });
+    } else if (estado.step == EvidenciaStep.capturaFoto && estado.error == null) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (usuario != null) {
+          notifier.tomarFotoYAnalizar(usuario);
+        }
       });
     }
 
@@ -63,18 +69,27 @@ class CapturaEvidenciaScreen extends ConsumerWidget {
         );
 
       case EvidenciaStep.capturaFoto:
-        final controller = notifier.cameraController;
-        if (controller == null) {
-          return Center(child: CircularProgressIndicator(color: Theme.of(context).colorScheme.primary));
-        }
-        return _CameraPreview(
-          controller: controller,
-          estado: estado,
-          onCapture: () {
-            if (usuario != null) {
-              notifier.tomarFotoYAnalizar(usuario);
-            }
-          },
+        return Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(Icons.camera_alt, size: 64, color: Theme.of(context).colorScheme.primary),
+              const SizedBox(height: 24),
+              ElevatedButton.icon(
+                icon: const Icon(Icons.camera),
+                label: const Text('Abrir Cámara Nativa'),
+                style: ElevatedButton.styleFrom(
+                  padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+                  textStyle: const TextStyle(fontSize: 18),
+                ),
+                onPressed: () {
+                  if (usuario != null) {
+                    notifier.tomarFotoYAnalizar(usuario);
+                  }
+                },
+              ),
+            ],
+          ),
         );
 
       case EvidenciaStep.analisisNitidez:
@@ -173,63 +188,6 @@ class _GpsGate extends StatelessWidget {
           ],
         ),
       ),
-    );
-  }
-}
-
-// ── Camera Preview ────────────────────────────────────────────────────
-
-class _CameraPreview extends StatelessWidget {
-  final CameraController controller;
-  final EvidenciaFlowState estado;
-  final VoidCallback onCapture;
-  
-  const _CameraPreview({
-    required this.controller,
-    required this.estado,
-    required this.onCapture,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final colorScheme = Theme.of(context).colorScheme;
-
-    return Stack(
-      children: [
-        SizedBox.expand(child: CameraPreview(controller)),
-        if (estado.error != null)
-          Positioned(
-            top: 16,
-            left: 16,
-            right: 16,
-            child: Container(
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                color: colorScheme.error.withValues(alpha: 0.9),
-                borderRadius: BorderRadius.circular(8),
-              ),
-              child: Text(estado.error!,
-                  style: TextStyle(color: colorScheme.onError)),
-            ),
-          ),
-        Positioned(
-          bottom: 48,
-          left: 0,
-          right: 0,
-          child: Center(
-            child: SizedBox(
-              width: 72,
-              height: 72,
-              child: FloatingActionButton(
-                backgroundColor: colorScheme.onSurface,
-                onPressed: onCapture,
-                shape: const CircleBorder(),
-                child: Icon(Icons.camera_alt, size: 32, color: colorScheme.surface),
-              ),
-            ),
-          ),
-        ),
-      ],
     );
   }
 }

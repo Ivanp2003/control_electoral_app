@@ -6,6 +6,8 @@ import '../../../../database/app_database.dart';
 import '../../../auth/domain/entities/usuario.dart';
 import '../../../auth/presentation/providers/auth_providers.dart';
 import '../providers/usuarios_providers.dart';
+import '../../../recintos/domain/entities/jrv.dart';
+import '../../../recintos/presentation/providers/recintos_providers.dart';
 
 class AsignarVeedoresScreen extends ConsumerStatefulWidget {
   const AsignarVeedoresScreen({super.key});
@@ -18,7 +20,7 @@ class AsignarVeedoresScreen extends ConsumerStatefulWidget {
 class _AsignarVeedoresScreenState
     extends ConsumerState<AsignarVeedoresScreen> {
   RecintosLocalData? _recintoSeleccionado;
-  JrvLocalData? _jrvSeleccionada;
+  Jrv? _jrvSeleccionada;
   String? _mensaje;
   bool _asignando = false;
 
@@ -60,7 +62,7 @@ class _AsignarVeedoresScreenState
           if (_recintoSeleccionado != null) ...[
             Padding(
               padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
-              child: _seleccionarJrv(db, colorScheme, surfaceColor),
+              child: _seleccionarJrv(colorScheme, surfaceColor),
             ),
           ],
           if (_mensaje != null)
@@ -119,15 +121,22 @@ class _AsignarVeedoresScreenState
     );
   }
 
-  Widget _seleccionarJrv(AppDatabase db, ColorScheme colorScheme, Color surfaceColor) {
-    return FutureBuilder<List<JrvLocalData>>(
-      future: db.obtenerJrvLocal(_recintoSeleccionado!.id),
-      builder: (context, snapshot) {
-        if (!snapshot.hasData || snapshot.data!.isEmpty) {
+  Widget _seleccionarJrv(ColorScheme colorScheme, Color surfaceColor) {
+    final jrvsAsync = ref.watch(jrvPorRecintoProvider(_recintoSeleccionado!.id));
+
+    return jrvsAsync.when(
+      loading: () => const Padding(
+        padding: EdgeInsets.all(8.0),
+        child: CircularProgressIndicator(),
+      ),
+      error: (e, _) => Text('Error al cargar JRVs: $e',
+          style: TextStyle(color: colorScheme.error)),
+      data: (jrvs) {
+        if (jrvs.isEmpty) {
           return Text('No hay JRV en este recinto.',
               style: TextStyle(color: colorScheme.onSurface.withOpacity(0.54)));
         }
-        return DropdownButtonFormField<JrvLocalData>(
+        return DropdownButtonFormField<Jrv>(
           value: _jrvSeleccionada,
           dropdownColor: surfaceColor,
           style: TextStyle(color: colorScheme.onSurface),
@@ -138,7 +147,7 @@ class _AsignarVeedoresScreenState
             fillColor: surfaceColor,
             border: const OutlineInputBorder(borderSide: BorderSide.none),
           ),
-          items: snapshot.data!.map((j) {
+          items: jrvs.map((j) {
             return DropdownMenuItem(
                 value: j, child: Text('${j.codigo} (${j.id})'));
           }).toList(),
@@ -156,11 +165,23 @@ class _AsignarVeedoresScreenState
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text('VEEDORES DISPONIBLES',
-            style: TextStyle(
-                color: colorScheme.onSurface.withOpacity(0.38),
-                fontSize: 11,
-                letterSpacing: 1.5)),
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Text('VEEDORES DISPONIBLES',
+                style: TextStyle(
+                    color: colorScheme.onSurface.withOpacity(0.38),
+                    fontSize: 11,
+                    letterSpacing: 1.5)),
+            IconButton(
+              icon: Icon(Icons.refresh, size: 20, color: colorScheme.primary),
+              onPressed: () {
+                ref.invalidate(listarUsuariosProvider('veedor'));
+              },
+              tooltip: 'Refrescar lista',
+            ),
+          ],
+        ),
         const SizedBox(height: 8),
         veedoresAsync.when(
           loading: () => Center(
@@ -203,7 +224,7 @@ class _AsignarVeedoresScreenState
                               icon: Icon(Icons.person_add,
                                   color: colorScheme.primary),
                               onPressed: () =>
-                                  _asignarVeedor(v.id, currentUser),
+                                  _asignarVeedor(v.id, '${v.nombres} ${v.apellidos}', currentUser),
                             ),
                     ),
                   );
@@ -217,7 +238,7 @@ class _AsignarVeedoresScreenState
   }
 
   Future<void> _asignarVeedor(
-      String veedorId, Usuario? currentUser) async {
+      String veedorId, String nombreVeedor, Usuario? currentUser) async {
     if (_jrvSeleccionada == null || _recintoSeleccionado == null) return;
 
     setState(() {
@@ -245,7 +266,7 @@ class _AsignarVeedoresScreenState
         );
       }),
       (_) => setState(() {
-        _mensaje = 'Veedor asignado correctamente a ${_jrvSeleccionada!.codigo}';
+        _mensaje = '$nombreVeedor asignado correctamente a la ${_jrvSeleccionada!.codigo}';
         _asignando = false;
       }),
     );

@@ -41,12 +41,8 @@ class _RecuperarPasswordScreenState extends ConsumerState<RecuperarPasswordScree
 
   void _submitRequest() async {
     if (_requestFormKey.currentState?.validate() ?? false) {
-      // En una app real de producción, la URL de redirección apunta al dominio de la web/deep link
-      const redirectUrl = 'http://localhost:5000/recuperar-password'; 
-      
       final success = await ref.read(authNotifierProvider.notifier).solicitarRecuperacion(
         _emailController.text.trim(),
-        redirectUrl,
       );
 
       if (success && mounted) {
@@ -143,7 +139,7 @@ class _RecuperarPasswordScreenState extends ConsumerState<RecuperarPasswordScree
                 Text(
                   isConfirming
                       ? 'Ingrese y confirme su nueva clave de acceso de 8 caracteres mínimo.'
-                      : 'Ingrese su correo electrónico registrado. Le enviaremos un enlace oficial para restablecer su clave.',
+                      : 'Ingrese su cédula o correo electrónico registrado. Le enviaremos un enlace oficial para restablecer su clave.',
                   textAlign: TextAlign.center,
                   style: TextStyle(fontSize: 13, color: colorScheme.onSurface.withOpacity(0.54)),
                 ),
@@ -213,20 +209,27 @@ class _RecuperarPasswordScreenState extends ConsumerState<RecuperarPasswordScree
         children: [
           TextFormField(
             controller: _emailController,
-            keyboardType: TextInputType.emailAddress,
+            keyboardType: TextInputType.text,
             enabled: !isLoading,
             decoration: const InputDecoration(
-              labelText: 'Correo Electrónico',
-              prefixIcon: Icon(Icons.alternate_email),
+              labelText: 'Cédula o Correo Electrónico',
+              prefixIcon: Icon(Icons.person_search),
               border: OutlineInputBorder(),
             ),
             validator: (value) {
               if (value == null || value.trim().isEmpty) {
-                return 'Ingrese su correo electrónico.';
+                return 'Ingrese su cédula o correo electrónico.';
               }
+              
+              final val = value.trim();
               final emailRegex = RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$');
-              if (!emailRegex.hasMatch(value.trim())) {
-                return 'Ingrese un formato de correo válido.';
+              final isEmail = emailRegex.hasMatch(val);
+              
+              // Simplistic check for cedula format here, full validation happens in usecase
+              final isCedula = val.length == 10 && RegExp(r'^[0-9]+$').hasMatch(val);
+
+              if (!isEmail && !isCedula) {
+                return 'Ingrese un formato de correo o cédula válido.';
               }
               return null;
             },
@@ -241,7 +244,7 @@ class _RecuperarPasswordScreenState extends ConsumerState<RecuperarPasswordScree
                     padding: const EdgeInsets.symmetric(vertical: 14),
                   ),
                   onPressed: _submitRequest,
-                  child: const Text('Enviar Enlace'),
+                  child: const Text('Enviar Enlace de Recuperación'),
                 ),
         ],
       ),

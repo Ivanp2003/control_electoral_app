@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'package:flutter/foundation.dart';
 import 'package:appwrite/appwrite.dart';
 import 'package:dartz/dartz.dart';
 import 'package:drift/drift.dart';
@@ -6,6 +7,7 @@ import 'package:riverpod_annotation/riverpod_annotation.dart';
 import '../../../../core/errors/failures.dart';
 import '../../../../core/network/appwrite_client.dart';
 import '../../../../core/network/connectivity_service.dart';
+import '../../../../core/utils/appwrite_id_helper.dart';
 import '../../../../database/app_database.dart';
 import '../../../auth/domain/entities/usuario.dart';
 import '../../domain/repositories/usuario_repository.dart';
@@ -50,7 +52,10 @@ class UsuariosRepositoryImpl implements UsuarioRepository {
     required String jrvId,
     required String recintoId,
   }) async {
-    final id = '${veedorId}_$jrvId';
+    final id = AppwriteIdHelper.veedorJrvId(
+      veedorId: veedorId,
+      jrvId: jrvId,
+    );
 
     // 1. Intento Remoto si hay red
     if (await _checkConnection()) {
@@ -69,6 +74,11 @@ class UsuariosRepositoryImpl implements UsuarioRepository {
         ));
         return const Right(unit);
       } catch (e) {
+        if (e is AppwriteException) {
+          debugPrint('AppwriteException en asignarVeedorAJrv: code=${e.code}, type=${e.type}, message=${e.message}');
+        } else {
+          debugPrint('Error desconocido en asignarVeedorAJrv: $e');
+        }
         // Falló remoto, fall back a local + cola
       }
     }
@@ -83,7 +93,7 @@ class UsuariosRepositoryImpl implements UsuarioRepository {
       ));
       await _db.encolarOperacion(SyncQueueCompanion(
         entityType: const Value('veedor_jrv'),
-        operation: const Value('assign'),
+        operation: const Value('CREATE'),
         payload: Value(jsonEncode({
           'id': id,
           'veedorId': veedorId,

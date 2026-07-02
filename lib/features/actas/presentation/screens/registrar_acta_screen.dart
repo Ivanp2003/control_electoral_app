@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/constants/app_roles.dart';
 import '../../../../core/validators/acta_validator.dart';
 import '../../../../core/network/appwrite_client.dart';
+import '../../../../core/utils/appwrite_id_helper.dart';
 import '../../../../database/app_database.dart';
 import '../../../auth/presentation/providers/auth_providers.dart';
 import '../../../organizaciones/data/datasources/organizaciones_remote_datasource.dart';
@@ -548,7 +549,10 @@ class _RegistrarActaScreenState extends ConsumerState<RegistrarActaScreen> {
     final usuario = ref.read(currentUserProvider)!;
 
     final acta = Acta(
-      id: '${_jrvSeleccionado!.id}_$_cargoSeleccionado',
+      id: AppwriteIdHelper.actaId(
+        jrvId: _jrvSeleccionado!.id,
+        cargoElectoral: _cargoSeleccionado,
+      ),
       jrvId: _jrvSeleccionado!.id,
       cargoElectoral: _cargoSeleccionado,
       totalSufragantes: total,

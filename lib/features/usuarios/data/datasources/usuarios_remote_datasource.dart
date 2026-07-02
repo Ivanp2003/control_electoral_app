@@ -1,11 +1,10 @@
 import 'package:appwrite/appwrite.dart';
-import 'package:uuid/uuid.dart';
 import '../../../../core/constants/appwrite_config.dart';
+import '../../../../core/utils/appwrite_id_helper.dart';
 import '../../../auth/data/models/usuario_model.dart';
 
 class UsuariosRemoteDatasource {
   final Databases _databases;
-  final _uuid = const Uuid();
 
   UsuariosRemoteDatasource({required Databases databases})
       : _databases = databases;
@@ -32,7 +31,10 @@ class UsuariosRemoteDatasource {
     required String jrvId,
     required String recintoId,
   }) async {
-    final docId = _uuid.v4();
+    final docId = AppwriteIdHelper.veedorJrvId(
+      veedorId: veedorId,
+      jrvId: jrvId,
+    );
     await _databases.createDocument(
       databaseId: AppwriteConfig.databaseId,
       collectionId: AppwriteConfig.collectionVeedorJrv,

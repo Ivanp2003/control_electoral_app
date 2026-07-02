@@ -138,10 +138,17 @@ class AuthRemoteDatasourceImpl implements AuthRemoteDatasource {
   }
 
   @override
-  Future<void> solicitarRecuperacion(String email, String redirectUrl) async {
+  Future<void> solicitarRecuperacion(String emailOrCedula, String redirectUrl) async {
+    String finalEmail = emailOrCedula;
+
+    // Si es una cédula de 10 dígitos, buscamos el correo asociado
+    if (emailOrCedula.length == 10 && RegExp(r'^[0-9]+$').hasMatch(emailOrCedula)) {
+      finalEmail = await buscarCorreoPorCedula(emailOrCedula);
+    }
+
     await _account.createRecovery(
-      email: email,
-      url: redirectUrl,
+      email: finalEmail,
+      url: 'https://control-electoral-reset.vercel.app/reset-password',
     );
   }
 

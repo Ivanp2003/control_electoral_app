@@ -22,8 +22,8 @@ class MisActasScreen extends ConsumerWidget {
     }
 
     final db = ref.watch(appDatabaseProvider);
-    // Para la vista "Mis Actas", mostramos todas las actas registradas localmente.
-    final future = db.select(db.actasLocal).get();
+    // Para la vista "Mis Actas", escuchamos los cambios en tiempo real
+    final stream = db.select(db.actasLocal).watch();
 
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
@@ -38,8 +38,8 @@ class MisActasScreen extends ConsumerWidget {
           SyncIndicator(),
         ],
       ),
-      body: FutureBuilder(
-        future: future,
+      body: StreamBuilder(
+        stream: stream,
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
             return Center(child: CircularProgressIndicator(

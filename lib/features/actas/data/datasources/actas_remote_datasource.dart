@@ -1,8 +1,7 @@
-import 'dart:convert';
 import 'package:appwrite/appwrite.dart';
 import '../../../../core/constants/appwrite_config.dart';
+import '../../../../core/utils/appwrite_id_helper.dart';
 import '../../domain/entities/acta.dart';
-import '../models/acta_model.dart';
 
 /// actas_remote_datasource.dart
 ///
@@ -14,7 +13,7 @@ class ActasRemoteDatasource {
 
   ActasRemoteDatasource(this._databases);
 
-  Future<void> registrarActa(Acta acta) async {
+  Future<void> registrarActa(Acta acta, String recintoId) async {
     // 1. Guardar cabecera del acta
     await _databases.createDocument(
       databaseId: AppwriteConfig.databaseId,
@@ -22,26 +21,32 @@ class ActasRemoteDatasource {
       documentId: acta.id,
       data: {
         'jrvId': acta.jrvId,
+        'recintoId': recintoId,
         'cargoElectoral': acta.cargoElectoral,
         'votosBlancos': acta.votosBlancos,
         'votosNulos': acta.votosNulos,
         'totalSufragantes': acta.totalSufragantes,
-        'evidenciaFoto': acta.evidenciaFoto,
+        'fotoUrl': acta.evidenciaFoto,
         'latitud': acta.latitud,
         'longitud': acta.longitud,
-        'creadoPor': acta.creadoPor,
+        'veedorId': acta.creadoPor,
         'editadoPor': acta.editadoPor,
         'fechaEdicion': acta.fechaEdicion?.toIso8601String(),
+        'estado': 'pendiente',
       },
       // Los permisos se inyectarán vía Appwrite Console / Collections default settings.
     );
 
     // 2. Guardar los detalles (votos de organizaciones)
     for (final org in acta.organizaciones) {
+      final detalleDocId = AppwriteIdHelper.actaDetalleId(
+        actaId: acta.id,
+        organizacionId: org.organizacionId,
+      );
       await _databases.createDocument(
         databaseId: AppwriteConfig.databaseId,
         collectionId: AppwriteConfig.collectionActaDetalle,
-        documentId: '${acta.id}_${org.organizacionId}',
+        documentId: detalleDocId,
         data: {
           'actaId': acta.id,
           'organizacionId': org.organizacionId,
@@ -51,13 +56,16 @@ class ActasRemoteDatasource {
     }
   }
 
-  Future<void> corregirActa(Acta acta) async {
+  Future<void> corregirActa(Acta acta, String recintoId) async {
     // Actualizar cabecera
     await _databases.updateDocument(
       databaseId: AppwriteConfig.databaseId,
       collectionId: AppwriteConfig.collectionActas,
       documentId: acta.id,
       data: {
+        'jrvId': acta.jrvId,
+        'recintoId': recintoId,
+        'cargoElectoral': acta.cargoElectoral,
         'votosBlancos': acta.votosBlancos,
         'votosNulos': acta.votosNulos,
         'totalSufragantes': acta.totalSufragantes,

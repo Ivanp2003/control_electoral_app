@@ -16,12 +16,14 @@ class AppwriteServices {
   final Account account;
   final Databases databases;
   final Storage storage;
+  final Functions functions;
 
   AppwriteServices({
     required this.client,
     required this.account,
     required this.databases,
     required this.storage,
+    required this.functions,
   });
 }
 
@@ -46,6 +48,7 @@ AppwriteServices appwriteServices(AppwriteServicesRef ref) {
     account: Account(client),
     databases: Databases(client),
     storage: Storage(client),
+    functions: Functions(client),
   );
 }
 

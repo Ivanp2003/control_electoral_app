@@ -268,6 +268,10 @@ class AppDatabase extends _$AppDatabase {
   Future<int> eliminarDeLaCola(SyncQueueData data) =>
       delete(syncQueue).delete(data);
 
+  Future<int> marcarActaComoSincronizada(String actaId) =>
+      (update(actasLocal)..where((t) => t.id.equals(actaId)))
+          .write(const ActasLocalCompanion(synced: Value(true)));
+
   // ---------------------------------------------------------------------------
   // CRUD — ProvinciasLocal (Fase 3)
   // ---------------------------------------------------------------------------

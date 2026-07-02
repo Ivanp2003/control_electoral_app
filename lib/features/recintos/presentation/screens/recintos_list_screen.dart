@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../providers/recintos_providers.dart';
 import '../../../../core/presentation/widgets/theme_toggle_button.dart';
+import '../../../../database/app_database.dart';
+import '../../domain/entities/recinto.dart';
 
 /// recintos_list_screen.dart
 ///
@@ -86,6 +88,9 @@ class _ProvinciaCard extends ConsumerWidget {
     return Card(
       margin: const EdgeInsets.only(bottom: 16),
       child: ExpansionTile(
+        leading: nombre.toLowerCase().contains('pichincha')
+            ? Image.asset('assets/flags/pichincha.png', width: 28, height: 28, fit: BoxFit.contain)
+            : const Icon(Icons.flag, size: 28),
         iconColor: colorScheme.primary,
         collapsedIconColor: colorScheme.onSurface.withOpacity(0.54),
         title: Text(nombre,
@@ -127,6 +132,9 @@ class _CantonTile extends ConsumerWidget {
     final colorScheme = theme.colorScheme;
 
     return ExpansionTile(
+      leading: nombre.toLowerCase().contains('quito')
+          ? Image.asset('assets/flags/quito.png', width: 24, height: 24, fit: BoxFit.contain)
+          : const Icon(Icons.flag_outlined, size: 24),
       iconColor: colorScheme.primary,
       collapsedIconColor: colorScheme.onSurface.withOpacity(0.54),
       tilePadding: const EdgeInsets.symmetric(horizontal: 24),
@@ -193,19 +201,63 @@ class _ParroquiaTile extends ConsumerWidget {
             }
             return Column(
               children: recintos
-                  .map((r) => ListTile(
-                        contentPadding:
-                            const EdgeInsets.symmetric(horizontal: 48),
-                        leading: Icon(Icons.location_on_outlined,
-                            color: colorScheme.primary, size: 18),
-                        title: Text(r.nombre,
-                            style: TextStyle(
-                                color: colorScheme.onSurface, fontSize: 14)),
-                        subtitle: Text(r.direccion,
-                            style: TextStyle(
-                                color: colorScheme.onSurface.withOpacity(0.38), fontSize: 12)),
-                      ))
+                  .map((r) => _RecintoTile(recinto: r))
                   .toList(),
+            );
+          },
+        ),
+      ],
+    );
+  }
+}
+
+class _RecintoTile extends ConsumerWidget {
+  final Recinto recinto;
+  const _RecintoTile({required this.recinto});
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final jrvsAsync = ref.watch(jrvPorRecintoProvider(recinto.id));
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+
+    return ExpansionTile(
+      iconColor: colorScheme.primary,
+      collapsedIconColor: colorScheme.onSurface.withOpacity(0.54),
+      tilePadding: const EdgeInsets.symmetric(horizontal: 48),
+      leading: Icon(Icons.location_on_outlined, color: colorScheme.primary, size: 18),
+      title: Text(recinto.nombre, style: TextStyle(color: colorScheme.onSurface, fontSize: 14)),
+      subtitle: Text(recinto.direccion, style: TextStyle(color: colorScheme.onSurface.withOpacity(0.38), fontSize: 12)),
+      children: [
+        jrvsAsync.when(
+          loading: () => Padding(
+            padding: const EdgeInsets.all(12),
+            child: CircularProgressIndicator(color: colorScheme.primary),
+          ),
+          error: (e, _) => Padding(
+            padding: const EdgeInsets.all(12),
+            child: Text('Error: $e', style: const TextStyle(color: Colors.redAccent)),
+          ),
+          data: (jrvs) {
+            if (jrvs.isEmpty) {
+              return Padding(
+                padding: const EdgeInsets.all(16),
+                child: Text('Sin mesas (JRVs) registradas.',
+                    style: TextStyle(color: colorScheme.onSurface.withOpacity(0.38))),
+              );
+            }
+            return Column(
+              children: jrvs.map((jrv) {
+                // In a future update, we can cross-reference with actasLocal to show real status.
+                // For now, we fulfill 'Ver mesas de su recinto'.
+                return ListTile(
+                  contentPadding: const EdgeInsets.symmetric(horizontal: 64),
+                  leading: Icon(Icons.how_to_vote_outlined, color: colorScheme.primary, size: 16),
+                  title: Text(jrv.codigo, style: TextStyle(color: colorScheme.onSurface, fontSize: 13)),
+                  subtitle: Text('Estado: Pendiente/Registrada (Próximamente)', 
+                    style: TextStyle(color: colorScheme.onSurface.withOpacity(0.38), fontSize: 11)),
+                );
+              }).toList(),
             );
           },
         ),

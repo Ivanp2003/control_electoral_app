@@ -64,9 +64,9 @@ final reintentarTareaFallidaUseCaseProvider =
 typedef ReintentarTareaFallidaUseCaseRef =
     ProviderRef<ReintentarTareaFallidaUseCase>;
 String _$pendingSyncTasksCountHash() =>
-    r'8987d63fe52a6cac2d2daf522685178f0437a669';
+    r'00df1fc3b85df77c26a63cf747f63350225e2f18';
 
-/// Escucha los cambios en SyncQueue para contar tareas pendientes/fallidas.
+/// Escucha los cambios en SyncQueue para contar tareas pendientes.
 ///
 /// Copied from [pendingSyncTasksCount].
 @ProviderFor(pendingSyncTasksCount)
@@ -83,5 +83,47 @@ final pendingSyncTasksCountProvider = AutoDisposeStreamProvider<int>.internal(
 @Deprecated('Will be removed in 3.0. Use Ref instead')
 // ignore: unused_element
 typedef PendingSyncTasksCountRef = AutoDisposeStreamProviderRef<int>;
+String _$failedSyncTasksCountHash() =>
+    r'0a4fabac44a8c9777861be652303f0cdd7d8b635';
+
+/// Escucha los cambios en SyncQueue para contar tareas fallidas.
+///
+/// Copied from [failedSyncTasksCount].
+@ProviderFor(failedSyncTasksCount)
+final failedSyncTasksCountProvider = AutoDisposeStreamProvider<int>.internal(
+  failedSyncTasksCount,
+  name: r'failedSyncTasksCountProvider',
+  debugGetCreateSourceHash: const bool.fromEnvironment('dart.vm.product')
+      ? null
+      : _$failedSyncTasksCountHash,
+  dependencies: null,
+  allTransitiveDependencies: null,
+);
+
+@Deprecated('Will be removed in 3.0. Use Ref instead')
+// ignore: unused_element
+typedef FailedSyncTasksCountRef = AutoDisposeStreamProviderRef<int>;
+String _$failedSyncTasksListHash() =>
+    r'de0c7229963069927a8c70522aa068c5e91f3d9a';
+
+/// Expone la lista de tareas fallidas para debugging y reintentos.
+///
+/// Copied from [failedSyncTasksList].
+@ProviderFor(failedSyncTasksList)
+final failedSyncTasksListProvider =
+    AutoDisposeStreamProvider<List<SyncQueueData>>.internal(
+      failedSyncTasksList,
+      name: r'failedSyncTasksListProvider',
+      debugGetCreateSourceHash: const bool.fromEnvironment('dart.vm.product')
+          ? null
+          : _$failedSyncTasksListHash,
+      dependencies: null,
+      allTransitiveDependencies: null,
+    );
+
+@Deprecated('Will be removed in 3.0. Use Ref instead')
+// ignore: unused_element
+typedef FailedSyncTasksListRef =
+    AutoDisposeStreamProviderRef<List<SyncQueueData>>;
 // ignore_for_file: type=lint
 // ignore_for_file: subtype_of_sealed_class, invalid_use_of_internal_member, invalid_use_of_visible_for_testing_member, deprecated_member_use_from_same_package

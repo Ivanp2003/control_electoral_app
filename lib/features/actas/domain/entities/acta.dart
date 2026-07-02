@@ -9,6 +9,7 @@ import 'organizacion_con_votos.dart';
 class Acta extends Equatable {
   final String id;
   final String jrvId;
+  final String? recintoId;
   final String cargoElectoral;
   final int totalSufragantes;
   final int votosBlancos;
@@ -25,6 +26,7 @@ class Acta extends Equatable {
   const Acta({
     required this.id,
     required this.jrvId,
+    this.recintoId,
     required this.cargoElectoral,
     required this.totalSufragantes,
     required this.votosBlancos,
@@ -43,6 +45,7 @@ class Acta extends Equatable {
   List<Object?> get props => [
         id,
         jrvId,
+        recintoId,
         cargoElectoral,
         totalSufragantes,
         votosBlancos,
@@ -60,6 +63,7 @@ class Acta extends Equatable {
   Acta copyWith({
     String? id,
     String? jrvId,
+    String? recintoId,
     String? cargoElectoral,
     int? totalSufragantes,
     int? votosBlancos,
@@ -76,6 +80,7 @@ class Acta extends Equatable {
     return Acta(
       id: id ?? this.id,
       jrvId: jrvId ?? this.jrvId,
+      recintoId: recintoId ?? this.recintoId,
       cargoElectoral: cargoElectoral ?? this.cargoElectoral,
       totalSufragantes: totalSufragantes ?? this.totalSufragantes,
       votosBlancos: votosBlancos ?? this.votosBlancos,

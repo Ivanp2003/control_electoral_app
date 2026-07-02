@@ -60,7 +60,7 @@ class AppwriteConfig {
   
   // --- Storage Buckets ---
   
-  static const String bucketEvidenciaFotografica = 'actas';
+  static const String bucketEvidenciaFotografica = '6a3deb260033fbc8be94';
 
   // --- Business / Bootstrap Constants ---
 

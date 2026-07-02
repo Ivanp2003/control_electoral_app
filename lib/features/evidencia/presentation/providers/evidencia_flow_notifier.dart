@@ -1,7 +1,5 @@
-import 'dart:io';
-import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:camera/camera.dart';
+import 'package:image_picker/image_picker.dart';
 import '../../../../core/constants/app_roles.dart';
 import '../../../auth/domain/entities/usuario.dart';
 import '../../../geolocalizacion/domain/entities/gps_data.dart';
@@ -45,9 +43,7 @@ class EvidenciaFlowState {
       step: step ?? this.step,
       gps: gps ?? this.gps,
       fotoPath: fotoPath ?? this.fotoPath,
-      // El error se limpia por defecto salvo que se pase uno nuevo explícitamente, 
-      // esto asegura que al cambiar de paso no arrastremos errores viejos.
-      // Para retener un error explícitamente se puede pasar `error: this.error`.
+      evidencia: evidencia ?? this.evidencia,
       error: error,
     );
   }
@@ -66,7 +62,7 @@ class EvidenciaFlowState {
 class EvidenciaFlowNotifier extends StateNotifier<EvidenciaFlowState> {
   final VerificarYCapturarGpsUseCase _gpsUseCase;
   final CapturarEvidenciaUseCase _capturarUseCase;
-  CameraController? _cameraController;
+  final ImagePicker _picker = ImagePicker();
 
   EvidenciaFlowNotifier({
     required VerificarYCapturarGpsUseCase gpsUseCase,
@@ -75,16 +71,8 @@ class EvidenciaFlowNotifier extends StateNotifier<EvidenciaFlowState> {
         _capturarUseCase = capturarUseCase,
         super(const EvidenciaFlowState());
 
-  CameraController? get cameraController => _cameraController;
-  
-  @visibleForTesting
-  set cameraController(CameraController? controller) {
-    _cameraController = controller;
-  }
-
   @override
   void dispose() {
-    _cameraController?.dispose();
     super.dispose();
   }
 
@@ -122,40 +110,34 @@ class EvidenciaFlowNotifier extends StateNotifier<EvidenciaFlowState> {
   /// Paso 3: Inicializar Cámara
   Future<void> inicializarCamara() async {
     if (state.step != EvidenciaStep.permisoCamara) return;
-
-    state = state.clearError();
-
-    try {
-      final cameras = await availableCameras();
-      if (cameras.isEmpty) {
-        state = state.copyWith(
-          step: EvidenciaStep.rechazado,
-          error: 'No se detectaron cámaras en este dispositivo.',
-        );
-        return;
-      }
-      
-      final controller = CameraController(cameras.first, ResolutionPreset.high, enableAudio: false);
-      await controller.initialize();
-      _cameraController = controller;
-
-      state = state.copyWith(step: EvidenciaStep.capturaFoto);
-    } catch (e) {
-      state = state.copyWith(
-        step: EvidenciaStep.rechazado,
-        error: 'Error al iniciar la cámara: $e. Verifica los permisos.',
-      );
-    }
+    
+    // Con image_picker, no necesitamos inicializar un controlador de cámara en vivo.
+    // Solo avanzamos directamente al paso de captura.
+    state = state.copyWith(step: EvidenciaStep.capturaFoto).clearError();
   }
 
   /// Paso 4 y 5: Capturar Foto y Analizar Nitidez
   Future<void> tomarFotoYAnalizar(Usuario usuario) async {
-    if (state.step != EvidenciaStep.capturaFoto || _cameraController == null) return;
+    if (state.step != EvidenciaStep.capturaFoto) return;
     
     try {
+      final xFile = await _picker.pickImage(
+        source: ImageSource.camera,
+        imageQuality: 85,
+        maxWidth: 1920,
+        maxHeight: 1920,
+      );
+
+      if (xFile == null) {
+        // El usuario canceló la captura
+        state = state.copyWith(
+          step: EvidenciaStep.rechazado,
+          error: 'Cancelaste la captura de la fotografía.',
+        );
+        return;
+      }
+
       state = state.copyWith(step: EvidenciaStep.analisisNitidez).clearError();
-      
-      final xFile = await _cameraController!.takePicture();
       
       final result = await _capturarUseCase(
         usuario: usuario,
@@ -182,7 +164,7 @@ class EvidenciaFlowNotifier extends StateNotifier<EvidenciaFlowState> {
     } catch (e) {
       state = state.copyWith(
         step: EvidenciaStep.capturaFoto,
-        error: 'Error al tomar la fotografía: $e',
+        error: 'Error al procesar la fotografía: $e',
       );
     }
   }

@@ -3,6 +3,7 @@ import 'package:dartz/dartz.dart';
 import 'package:drift/drift.dart';
 import '../../../../core/errors/failures.dart';
 import '../../../../core/network/connectivity_service.dart';
+import '../../../../core/utils/appwrite_id_helper.dart';
 import '../../../../database/app_database.dart';
 import '../../domain/entities/acta.dart';
 import '../../domain/repositories/actas_repository.dart';
@@ -41,12 +42,29 @@ class ActasRepositoryImpl implements ActasRepository {
     try {
       final isOnline = await _connectivity.isConnected;
       
-      final deterministicId = 'acta_${acta.jrvId}_${acta.cargoElectoral.toLowerCase()}';
-      final actaToSave = _marcarComoSynced(acta, false).copyWith(id: deterministicId);
+      // ID determinístico y seguro: siempre ≤36 chars, solo alfanumérico+_
+      final String actaId = AppwriteIdHelper.actaId(
+        jrvId: acta.jrvId,
+        cargoElectoral: acta.cargoElectoral,
+      );
+      final actaToSave = _marcarComoSynced(acta, false).copyWith(id: actaId);
 
       if (isOnline) {
         try {
-          await _remoteDatasource.registrarActa(actaToSave);
+          // Obtener recintoId de la JRV
+          final jrv = await _db.obtenerJrvLocalPorId(acta.jrvId);
+          String recintoId = jrv?.recintoId ?? '';
+          if (recintoId.isEmpty) {
+            final asignaciones = await (_db.select(_db.veedorJrvLocal)
+                  ..where((t) => t.jrvId.equals(acta.jrvId))
+                  ..limit(1))
+                .get();
+            if (asignaciones.isNotEmpty) {
+              recintoId = asignaciones.first.recintoId;
+            }
+          }
+
+          await _remoteDatasource.registrarActa(actaToSave, recintoId);
           // Si tiene éxito en remoto, guardar localmente como sincronizado
           final syncedActa = _marcarComoSynced(actaToSave, true);
           await _localDatasource.guardarActaLocal(syncedActa);
@@ -70,7 +88,20 @@ class ActasRepositoryImpl implements ActasRepository {
 
       if (isOnline) {
         try {
-          await _remoteDatasource.corregirActa(acta);
+          // Obtener recintoId de la JRV
+          final jrv = await _db.obtenerJrvLocalPorId(acta.jrvId);
+          String recintoId = jrv?.recintoId ?? '';
+          if (recintoId.isEmpty) {
+            final asignaciones = await (_db.select(_db.veedorJrvLocal)
+                  ..where((t) => t.jrvId.equals(acta.jrvId))
+                  ..limit(1))
+                .get();
+            if (asignaciones.isNotEmpty) {
+              recintoId = asignaciones.first.recintoId;
+            }
+          }
+
+          await _remoteDatasource.corregirActa(acta, recintoId);
           final syncedActa = _marcarComoSynced(acta, true);
           await _localDatasource.guardarActaLocal(syncedActa);
           return const Right(null);

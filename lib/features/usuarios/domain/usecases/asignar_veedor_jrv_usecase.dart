@@ -27,7 +27,7 @@ class AsignarVeedorJrvUseCase {
         return const Left(PermissionFailure('Error al validar recinto.'));
       }
       final recinto = recintoResult.fold((l) => null, (r) => r);
-      if (recinto == null || recinto.coordinadorId != usuarioEjecutor.id) {
+      if (recinto == null || (recinto.coordinadorId != null && recinto.coordinadorId != usuarioEjecutor.id)) {
         return const Left(PermissionFailure('No puedes asignar veedores en un recinto que no te pertenece.'));
       }
     }

@@ -179,7 +179,9 @@ class _CrearUsuarioScreenState extends ConsumerState<CrearUsuarioScreen> {
       apellidos: _apellidosCtrl.text.trim(),
       telefono: _telefonoCtrl.text.trim(),
       correo: _correoCtrl.text.trim(),
-      rol: _rolSeleccionado,
+      rol: _rolesDisponibles(ref.read(currentUserProvider)?.rol).contains(_rolSeleccionado) 
+          ? _rolSeleccionado 
+          : _rolesDisponibles(ref.read(currentUserProvider)?.rol).first,
     );
 
     if (!mounted) return;

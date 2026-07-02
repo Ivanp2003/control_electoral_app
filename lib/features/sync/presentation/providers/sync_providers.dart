@@ -12,7 +12,8 @@ part 'sync_providers.g.dart';
 SyncRemoteExecutor syncRemoteExecutor(SyncRemoteExecutorRef ref) {
   final databases = ref.watch(appwriteDatabasesProvider);
   final storage = ref.watch(appwriteStorageProvider);
-  return SyncRemoteExecutorImpl(databases: databases, storage: storage);
+  final db = ref.watch(appDatabaseProvider);
+  return SyncRemoteExecutorImpl(databases: databases, storage: storage, db: db);
 }
 
 @Riverpod(keepAlive: true)
@@ -28,12 +29,29 @@ ReintentarTareaFallidaUseCase reintentarTareaFallidaUseCase(ReintentarTareaFalli
   return ReintentarTareaFallidaUseCase(db);
 }
 
-/// Escucha los cambios en SyncQueue para contar tareas pendientes/fallidas.
+/// Escucha los cambios en SyncQueue para contar tareas pendientes.
 @riverpod
 Stream<int> pendingSyncTasksCount(PendingSyncTasksCountRef ref) {
   final db = ref.watch(appDatabaseProvider);
-  // Escuchamos la tabla SyncQueue
   return db.select(db.syncQueue)
     .watch()
-    .map((tasks) => tasks.where((t) => t.status == 'pending' || t.status == 'failed').length);
+    .map((tasks) => tasks.where((t) => t.status == 'pending').length);
+}
+
+/// Escucha los cambios en SyncQueue para contar tareas fallidas.
+@riverpod
+Stream<int> failedSyncTasksCount(FailedSyncTasksCountRef ref) {
+  final db = ref.watch(appDatabaseProvider);
+  return db.select(db.syncQueue)
+    .watch()
+    .map((tasks) => tasks.where((t) => t.status == 'failed').length);
+}
+
+/// Expone la lista de tareas fallidas para debugging y reintentos.
+@riverpod
+Stream<List<SyncQueueData>> failedSyncTasksList(FailedSyncTasksListRef ref) {
+  final db = ref.watch(appDatabaseProvider);
+  return db.select(db.syncQueue)
+    .watch()
+    .map((tasks) => tasks.where((t) => t.status == 'failed').toList());
 }

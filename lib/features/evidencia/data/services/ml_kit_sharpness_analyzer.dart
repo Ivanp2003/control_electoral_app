@@ -7,12 +7,12 @@ import '../../domain/services/sharpness_analyzer.dart';
 class MlKitSharpnessAnalyzer implements SharpnessAnalyzer {
   @override
   Future<Either<Failure, SharpnessResult>> isSharp(File imageFile) async {
+    final textRecognizer = TextRecognizer();
     try {
       final inputImage = InputImage.fromFile(imageFile);
-      final textRecognizer = TextRecognizer();
-      final recognizedText = await textRecognizer.processImage(inputImage);
-
-      await textRecognizer.close();
+      final recognizedText = await textRecognizer
+          .processImage(inputImage)
+          .timeout(const Duration(seconds: 15));
 
       final blockCount = recognizedText.blocks.length;
       final lineCount =
@@ -34,6 +34,8 @@ class MlKitSharpnessAnalyzer implements SharpnessAnalyzer {
       return Left(
         CacheFailure('Error al analizar nitidez de la imagen: $e'),
       );
+    } finally {
+      await textRecognizer.close();
     }
   }
 }
