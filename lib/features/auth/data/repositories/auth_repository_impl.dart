@@ -129,7 +129,7 @@ class AuthRepositoryImpl implements AuthRepository {
   }
 
   @override
-  Future<Either<Failure, Unit>> crearUsuario({
+  Future<Either<Failure, String>> crearUsuario({
     required String cedula,
     required String nombres,
     required String apellidos,
@@ -141,9 +141,9 @@ class AuthRepositoryImpl implements AuthRepository {
     if (!await _checkConnection()) {
       return const Left(NoConnectionFailure());
     }
-
+ 
     try {
-      await _remoteDatasource.crearUsuario(
+      final userId = await _remoteDatasource.crearUsuario(
         cedula: cedula,
         nombres: nombres,
         apellidos: apellidos,
@@ -152,7 +152,7 @@ class AuthRepositoryImpl implements AuthRepository {
         rol: rol,
         recintoId: recintoId,
       );
-      return const Right(unit);
+      return Right(userId);
     } on CedulaDuplicadaException {
       return const Left(DuplicateUserFailure(
         duplicateField: 'cedula',

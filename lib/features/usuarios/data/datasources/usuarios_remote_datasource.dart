@@ -58,4 +58,46 @@ class UsuariosRemoteDatasource {
       data: {'coordinadorId': coordinadorId},
     );
   }
+
+  Future<UsuarioModel> buscarUsuarioPorCedula(String cedula) async {
+    final response = await _databases.listDocuments(
+      databaseId: AppwriteConfig.databaseId,
+      collectionId: AppwriteConfig.collectionUsuarios,
+      queries: [Query.equal('cedula', cedula), Query.limit(1)],
+    );
+    if (response.documents.isEmpty) {
+      throw AppwriteException('Usuario no encontrado.', 404);
+    }
+    return UsuarioModel.fromJson(response.documents.first.data);
+  }
+
+  Future<void> desasignarCoordinadorDeCualquierRecinto(String coordinadorId) async {
+    // Buscar recintos anteriores asociados a este coordinador y limpiar su coordinadorId
+    final response = await _databases.listDocuments(
+      databaseId: AppwriteConfig.databaseId,
+      collectionId: AppwriteConfig.collectionRecintos,
+      queries: [Query.equal('coordinadorId', coordinadorId), Query.limit(10)],
+    );
+    for (final doc in response.documents) {
+      await _databases.updateDocument(
+        databaseId: AppwriteConfig.databaseId,
+        collectionId: AppwriteConfig.collectionRecintos,
+        documentId: doc.$id,
+        data: {'coordinadorId': null},
+      );
+    }
+  }
+
+  Future<List<Map<String, dynamic>>> obtenerAsignacionesVeedor(String veedorId) async {
+    final response = await _databases.listDocuments(
+      databaseId: AppwriteConfig.databaseId,
+      collectionId: AppwriteConfig.collectionVeedorJrv,
+      queries: [Query.equal('veedorId', veedorId)],
+    );
+    return response.documents.map((d) {
+      final data = Map<String, dynamic>.from(d.data);
+      data['\$id'] = d.$id;
+      return data;
+    }).toList();
+  }
 }

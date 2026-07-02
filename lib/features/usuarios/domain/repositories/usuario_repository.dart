@@ -15,4 +15,10 @@ abstract class UsuarioRepository {
     required String recintoId,
     required String coordinadorId,
   });
+
+  Future<Either<Failure, Usuario>> buscarUsuarioPorCedula(String cedula);
+
+  Future<Either<Failure, Unit>> desasignarCoordinadorDeCualquierRecinto(String coordinadorId);
+
+  Future<Either<Failure, List<Map<String, dynamic>>>> obtenerAsignacionesVeedor(String veedorId);
 }

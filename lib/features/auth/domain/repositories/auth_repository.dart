@@ -29,7 +29,7 @@ abstract class AuthRepository {
   );
 
   /// Registra una nueva cuenta de usuario en el sistema.
-  Future<Either<Failure, Unit>> crearUsuario({
+  Future<Either<Failure, String>> crearUsuario({
     required String cedula,
     required String nombres,
     required String apellidos,

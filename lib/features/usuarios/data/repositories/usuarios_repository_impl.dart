@@ -128,6 +128,73 @@ class UsuariosRepositoryImpl implements UsuarioRepository {
       return Left(ServerFailure(e.toString()));
     }
   }
+
+  @override
+  Future<Either<Failure, Usuario>> buscarUsuarioPorCedula(String cedula) async {
+    if (!await _checkConnection()) {
+      return const Left(NoConnectionFailure());
+    }
+    try {
+      final model = await _remote.buscarUsuarioPorCedula(cedula);
+      return Right(model.toDomain());
+    } on AppwriteException catch (e) {
+      return Left(ServerFailure(e.message ?? 'Error al buscar usuario por cédula.'));
+    } catch (e) {
+      return Left(ServerFailure(e.toString()));
+    }
+  }
+
+  @override
+  Future<Either<Failure, Unit>> desasignarCoordinadorDeCualquierRecinto(String coordinadorId) async {
+    if (!await _checkConnection()) {
+      return const Left(NoConnectionFailure());
+    }
+    try {
+      await _remote.desasignarCoordinadorDeCualquierRecinto(coordinadorId);
+      return const Right(unit);
+    } on AppwriteException catch (e) {
+      return Left(ServerFailure(e.message ?? 'Error al desasignar coordinadores anteriores.'));
+    } catch (e) {
+      return Left(ServerFailure(e.toString()));
+    }
+  }
+
+  @override
+  Future<Either<Failure, List<Map<String, dynamic>>>> obtenerAsignacionesVeedor(String veedorId) async {
+    final online = await _checkConnection();
+    if (online) {
+      try {
+        final list = await _remote.obtenerAsignacionesVeedor(veedorId);
+        // Guardar localmente
+        await _db.transaction(() async {
+          // Limpiar local anterior del veedor
+          await (_db.delete(_db.veedorJrvLocal)..where((t) => t.veedorId.equals(veedorId))).go();
+          // Insertar los nuevos
+          for (final item in list) {
+            await _db.guardarAsignacionVeedor(VeedorJrvLocalCompanion(
+              id: Value(item['\$id'] as String),
+              veedorId: Value(item['veedorId'] as String),
+              jrvId: Value(item['jrvId'] as String),
+              recintoId: Value(item['recintoId'] as String),
+            ));
+          }
+        });
+        return Right(list);
+      } catch (e) {
+        // Fallback local en caso de error
+      }
+    }
+    
+    // Obtener locales
+    final rows = await (_db.select(_db.veedorJrvLocal)..where((t) => t.veedorId.equals(veedorId))).get();
+    final list = rows.map((r) => {
+      '\$id': r.id,
+      'veedorId': r.veedorId,
+      'jrvId': r.jrvId,
+      'recintoId': r.recintoId,
+    }).toList();
+    return Right(list);
+  }
 }
 
 @Riverpod(keepAlive: true)

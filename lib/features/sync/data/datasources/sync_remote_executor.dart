@@ -3,6 +3,7 @@ import 'dart:io';
 import 'package:appwrite/appwrite.dart';
 import '../../../../core/constants/appwrite_config.dart';
 import '../../../../core/utils/appwrite_id_helper.dart';
+import 'package:drift/drift.dart' hide Query;
 import '../../../../database/app_database.dart';
 import '../../domain/entities/sync_task.dart';
 
@@ -237,7 +238,13 @@ class SyncRemoteExecutorImpl implements SyncRemoteExecutor {
             if (userDocs.documents.isEmpty) {
               throw PermanentSyncFailureException('No se encontró el usuario con cédula $cedula');
             }
-            final coordinadorId = userDocs.documents.first.$id;
+            final userDoc = userDocs.documents.first;
+            final rol = userDoc.data['rol'] as String? ?? '';
+            if (rol != 'coordinadorRecinto') {
+              throw PermanentSyncFailureException('El usuario con cédula $cedula no tiene el rol de coordinadorRecinto');
+            }
+            final coordinadorId = userDoc.$id;
+            final recintoId = payload['recintoId'] as String;
             
             // 1. Vincular el recinto al coordinador en Appwrite
             await _databases.updateDocument(
@@ -245,7 +252,7 @@ class SyncRemoteExecutorImpl implements SyncRemoteExecutor {
               collectionId: AppwriteConfig.collectionUsuarios,
               documentId: coordinadorId,
               data: {
-                'recintoId': payload['recintoId'] as String,
+                'recintoId': recintoId,
               },
             );
 
@@ -253,11 +260,23 @@ class SyncRemoteExecutorImpl implements SyncRemoteExecutor {
             await _executeUpsert(
               operation: 'UPDATE',
               collectionId: AppwriteConfig.collectionRecintos,
-              documentId: payload['recintoId'] as String,
+              documentId: recintoId,
               data: {
                 'coordinadorId': coordinadorId,
               },
             );
+
+            // 3. Local-write en Drift SQLite de forma inmediata para mantener consistencia
+            await _db.transaction(() async {
+              await (_db.update(_db.recintosLocal)
+                    ..where((t) => t.coordinadorId.equals(coordinadorId)))
+                  .write(const RecintosLocalCompanion(coordinadorId: Value.absent()));
+
+              // Vincular en el recinto actual
+              await (_db.update(_db.recintosLocal)
+                    ..where((t) => t.id.equals(recintoId)))
+                  .write(RecintosLocalCompanion(coordinadorId: Value(coordinadorId)));
+            });
           } else {
             throw Exception('Unknown operation ${task.operation} for entityType recinto');
           }

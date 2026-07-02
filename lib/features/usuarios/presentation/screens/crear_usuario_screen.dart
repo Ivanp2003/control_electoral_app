@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/constants/app_roles.dart';
+import 'package:drift/drift.dart' hide Column;
 import '../../../../core/presentation/widgets/theme_toggle_button.dart';
 import '../../../../core/validators/cedula_validator.dart';
 import '../../../auth/presentation/providers/auth_providers.dart';
@@ -315,7 +316,26 @@ class _CrearUsuarioScreenState extends ConsumerState<CrearUsuarioScreen> {
 
     result.fold(
       (failure) => setState(() { _error = failure.message; _guardando = false; }),
-      (_) {
+      (userId) async {
+        final rolFinal = _rolesDisponibles(ref.read(currentUserProvider)?.rol).contains(_rolSeleccionado) 
+            ? _rolSeleccionado 
+            : _rolesDisponibles(ref.read(currentUserProvider)?.rol).first;
+
+        if (rolFinal == 'coordinadorRecinto' && _recintoIdSeleccionado != null) {
+          final db = ref.read(appDatabaseProvider);
+          // Vincular de inmediato de forma bidireccional localmente en Drift
+          await db.transaction(() async {
+            await (db.update(db.recintosLocal)
+                  ..where((t) => t.coordinadorId.equals(userId)))
+                .write(const RecintosLocalCompanion(coordinadorId: Value.absent()));
+
+            // Vincular al nuevo recinto
+            await (db.update(db.recintosLocal)
+                  ..where((t) => t.id.equals(_recintoIdSeleccionado!)))
+                .write(RecintosLocalCompanion(coordinadorId: Value(userId)));
+          });
+        }
+
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Usuario creado exitosamente'), backgroundColor: Colors.greenAccent),
         );

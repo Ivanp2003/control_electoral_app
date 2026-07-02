@@ -34,7 +34,7 @@ abstract class AuthRemoteDatasource {
   Future<void> confirmarRecuperacion(String userId, String secret, String newPassword);
 
   /// Invoca una función de servidor para crear una cuenta de usuario y su documento de perfil.
-  Future<void> crearUsuario({
+  Future<String> crearUsuario({
     required String cedula,
     required String nombres,
     required String apellidos,
@@ -164,7 +164,7 @@ class AuthRemoteDatasourceImpl implements AuthRemoteDatasource {
   }
 
   @override
-  Future<void> crearUsuario({
+  Future<String> crearUsuario({
     required String cedula,
     required String nombres,
     required String apellidos,
@@ -204,6 +204,10 @@ class AuthRemoteDatasourceImpl implements AuthRemoteDatasource {
       }
       throw Exception(responseMap['message'] ?? 'Error desconocido del servidor');
     }
+    
+    // Retornar el ID real del usuario creado que devuelve la función en la nube
+    final userData = responseMap['data'] as Map<String, dynamic>;
+    return userData['\$id'] as String? ?? userData['id'] as String? ?? '';
   }
 }
 

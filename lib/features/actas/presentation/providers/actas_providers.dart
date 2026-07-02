@@ -22,7 +22,7 @@ ActasLocalDatasource actasLocalDatasource(ActasLocalDatasourceRef ref) {
 @Riverpod(keepAlive: true)
 ActasRemoteDatasource actasRemoteDatasource(ActasRemoteDatasourceRef ref) {
   final services = ref.watch(appwriteServicesProvider);
-  return ActasRemoteDatasource(services.databases);
+  return ActasRemoteDatasource(services.databases, services.storage);
 }
 
 @Riverpod(keepAlive: true)

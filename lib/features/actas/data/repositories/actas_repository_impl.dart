@@ -6,6 +6,7 @@ import '../../../../core/network/connectivity_service.dart';
 import '../../../../core/utils/appwrite_id_helper.dart';
 import '../../../../database/app_database.dart';
 import '../../domain/entities/acta.dart';
+import '../../domain/entities/organizacion_con_votos.dart';
 import '../../domain/repositories/actas_repository.dart';
 import '../datasources/actas_local_datasource.dart';
 import '../datasources/actas_remote_datasource.dart';
@@ -30,6 +31,42 @@ class ActasRepositoryImpl implements ActasRepository {
   @override
   Future<Either<Failure, List<Acta>>> obtenerActasPorJrv(String jrvId) async {
     try {
+      final isOnline = await _connectivity.isConnected;
+      if (isOnline) {
+        try {
+          final remoteActasMaps = await _remoteDatasource.obtenerActasPorJrv(jrvId);
+          for (final map in remoteActasMaps) {
+            final List<OrganizacionConVotos> listOrgs = (map['organizaciones'] as List? ?? []).map((o) {
+              return OrganizacionConVotos(
+                organizacionId: o['organizacionId'] as String? ?? '',
+                nombreOrganizacion: o['nombreOrganizacion'] as String? ?? '', // Opcional si no viene, pero lo completamos
+                votos: o['votos'] as int? ?? 0,
+              );
+            }).toList().cast<OrganizacionConVotos>();
+
+            final acta = Acta(
+              id: map['\$id'] as String,
+              jrvId: map['jrvId'] as String,
+              recintoId: map['recintoId'] as String?,
+              cargoElectoral: map['cargoElectoral'] as String,
+              totalSufragantes: map['totalSufragantes'] as int? ?? 0,
+              votosBlancos: map['votosBlancos'] as int? ?? 0,
+              votosNulos: map['votosNulos'] as int? ?? 0,
+              organizaciones: listOrgs,
+              evidenciaFoto: map['fotoUrl'] as String?,
+              latitud: (map['latitud'] as num?)?.toDouble() ?? 0.0,
+              longitud: (map['longitud'] as num?)?.toDouble() ?? 0.0,
+              creadoPor: map['veedorId'] as String? ?? '',
+              editadoPor: map['editadoPor'] as String?,
+              fechaEdicion: map['fechaEdicion'] != null ? DateTime.tryParse(map['fechaEdicion'] as String) : null,
+              synced: true,
+            );
+            await _localDatasource.guardarActaLocal(acta);
+          }
+        } catch (_) {
+          // Ignorar fallas remotas al refrescar y usar fallback local
+        }
+      }
       final actas = await _localDatasource.obtenerActasPorJrv(jrvId);
       return Right(actas);
     } catch (e) {

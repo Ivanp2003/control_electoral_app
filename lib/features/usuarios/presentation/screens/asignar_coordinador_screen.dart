@@ -3,9 +3,12 @@ import 'dart:convert';
 import 'package:drift/drift.dart' hide Column;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../../../core/errors/failures.dart';
 import '../../../../core/presentation/widgets/theme_toggle_button.dart';
 import '../../../../core/validators/cedula_validator.dart';
 import '../../../../database/app_database.dart';
+import '../../../auth/presentation/providers/auth_providers.dart';
+import '../providers/usuarios_providers.dart';
 
 class AsignarCoordinadorScreen extends ConsumerStatefulWidget {
   const AsignarCoordinadorScreen({super.key});
@@ -206,28 +209,53 @@ class _AsignarCoordinadorScreenState
 
   Future<void> _asignar(
       RecintosLocalData recinto, String cedula) async {
-    final db = ref.read(appDatabaseProvider);
+    final ejecutor = ref.read(currentUserProvider);
+    if (ejecutor == null) return;
 
-    // 1. Local-write: Actualizar de inmediato el coordinadorId del recinto local en Drift
-    // Nota: El usuario actual no se almacena en una tabla local usuariosLocal en Drift,
-    // pero marcamos al recinto local con un marcador temporal de 'asignado' para indicar que se vinculó.
-    await db.update(db.recintosLocal).replace(recinto.copyWith(coordinadorId: Value('cedula:$cedula')));
+    // Mostrar diálogo de cargando
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => const Center(child: CircularProgressIndicator()),
+    );
 
-    // 2. Encolar la sincronización a Appwrite (que hará la vinculación bidireccional)
-    await db.encolarOperacion(SyncQueueCompanion(
-      entityType: const Value('recinto'),
-      operation: const Value('asignarCoordinador'),
-      payload: Value(jsonEncode({
-        'recintoId': recinto.id,
-        'cedulaCoordinador': cedula,
-      })),
-      status: const Value('pending'),
-    ));
+    final useCase = ref.read(asignarCoordinadorRecintoUseCaseProvider);
+    final result = await useCase(
+      recintoId: recinto.id,
+      cedulaCoordinador: cedula,
+      usuarioEjecutor: ejecutor,
+    );
 
-    setState(() {
-      _recintoSeleccionado = recinto;
-      _mensaje =
-          'Asignación encolada para ${recinto.nombre} (pendiente de sincronización)';
-    });
+    // Ocultar diálogo de cargando
+    if (mounted) Navigator.pop(context);
+
+    result.fold(
+      (failure) {
+        if (failure is NoConnectionFailure) {
+          setState(() {
+            _recintoSeleccionado = recinto;
+            _mensaje = 'Asignación guardada localmente, se sincronizará al recuperar conexión.';
+          });
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Sin conexión. Sincronización encolada localmente.')),
+          );
+        } else {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('Error: ${failure.message}'), backgroundColor: Colors.redAccent),
+          );
+        }
+      },
+      (_) {
+        setState(() {
+          _recintoSeleccionado = recinto;
+          _mensaje = 'Coordinador asignado correctamente.';
+        });
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Coordinador asignado correctamente.')),
+        );
+        // Forzar actualización de la UI invalidando el listado
+        setState(() {});
+      },
+    );
   }
 }

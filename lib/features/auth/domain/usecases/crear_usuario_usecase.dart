@@ -15,7 +15,7 @@ class CrearUsuarioUseCase {
   CrearUsuarioUseCase({required AuthRepository repository}) : _repository = repository;
 
   /// Ejecuta el caso de uso de registro de usuario.
-  Future<Either<Failure, Unit>> call({
+  Future<Either<Failure, String>> call({
     required String cedula,
     required String nombres,
     required String apellidos,

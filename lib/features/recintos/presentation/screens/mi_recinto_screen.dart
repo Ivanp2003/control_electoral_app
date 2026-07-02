@@ -14,14 +14,7 @@ import '../../domain/entities/recinto.dart';
 import '../../../../core/presentation/widgets/theme_toggle_button.dart';
 import '../../../sync/presentation/widgets/sync_indicator.dart';
 
-final _recintoAsignadoProvider = FutureProvider.family.autoDispose<Recinto, String>((ref, recintoId) async {
-  final repository = ref.watch(recintosRepositoryProvider);
-  final result = await repository.obtenerRecintoPorId(recintoId);
-  return result.fold(
-    (failure) => throw Exception(failure.message),
-    (recinto) => recinto,
-  );
-});
+
 
 // Provider para listar las JRVs del recinto asignado
 final _jrvsPorRecintoProvider = FutureProvider.family.autoDispose<List<Jrv>, String>((ref, recintoId) async {
@@ -33,10 +26,44 @@ final _jrvsPorRecintoProvider = FutureProvider.family.autoDispose<List<Jrv>, Str
   );
 });
 
-// Provider para obtener actas de una JRV específica
-final _actasPorJrvProvider = FutureProvider.family.autoDispose<List<ActasLocalData>, String>((ref, jrvId) async {
+// Provider para resolver el recinto asignado al coordinador actual de forma reactiva e infalible
+final _miRecintoProvider = FutureProvider.autoDispose<Recinto?>((ref) async {
+  final usuario = ref.watch(currentUserProvider);
+  if (usuario == null || usuario.rol != AppRole.coordinadorRecinto) return null;
+
   final db = ref.watch(appDatabaseProvider);
-  return await db.obtenerActasPorJrvLocal(jrvId);
+  
+  // 1. Intentar localmente en Drift por coordinadorId == usuario.id
+  final recintoLocal = await (db.select(db.recintosLocal)..where((t) => t.coordinadorId.equals(usuario.id))).getSingleOrNull();
+  if (recintoLocal != null) {
+    return Recinto(
+      id: recintoLocal.id,
+      nombre: recintoLocal.nombre,
+      parroquiaId: recintoLocal.parroquiaId,
+      direccion: recintoLocal.direccion,
+      latRef: recintoLocal.latRef,
+      lonRef: recintoLocal.lonRef,
+      coordinadorId: recintoLocal.coordinadorId,
+    );
+  }
+
+  // 2. Si el usuario tiene recintoId en su perfil de la sesión, cargar ese directamente
+  if (usuario.recintoId != null && usuario.recintoId!.isNotEmpty) {
+    final repository = ref.watch(recintosRepositoryProvider);
+    final result = await repository.obtenerRecintoPorId(usuario.recintoId!);
+    return result.fold((l) => null, (r) => r);
+  }
+
+  return null;
+});
+// Provider para obtener actas de una JRV específica de forma reactiva y sincronizada online
+final _actasPorJrvProvider = FutureProvider.family.autoDispose<List<Acta>, String>((ref, jrvId) async {
+  final repo = ref.watch(actasRepositoryProvider);
+  final result = await repo.obtenerActasPorJrv(jrvId);
+  return result.fold(
+    (failure) => throw Exception(failure.message),
+    (actas) => actas,
+  );
 });
 
 final _veedorPorJrvProvider = FutureProvider.family.autoDispose<String?, String>((ref, jrvId) async {
@@ -69,71 +96,77 @@ class MiRecintoScreen extends ConsumerWidget {
       );
     }
 
-    final recintoId = usuario.recintoId;
-    if (recintoId == null || recintoId.isEmpty) {
-      return Scaffold(
-        appBar: AppBar(
-          title: const Text('Mi Recinto'),
-          actions: [
-            IconButton(
-              icon: const Icon(Icons.refresh),
-              tooltip: 'Actualizar Datos',
-              onPressed: () async {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('Actualizando información de tu usuario y recinto...')),
-                );
-                await ref.read(authNotifierProvider.notifier).verificarSesionActiva();
-              },
-            ),
-          ],
-        ),
-        body: Center(
-          child: Padding(
-            padding: const EdgeInsets.all(24.0),
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Icon(Icons.location_off, size: 64, color: colorScheme.error.withOpacity(0.5)),
-                const SizedBox(height: 16),
-                Text('No tienes un recinto asignado.', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: colorScheme.onSurface)),
-                const SizedBox(height: 8),
-                Text('Contacta al Coordinador Provincial para que te asigne a un Recinto.', 
-                     textAlign: TextAlign.center,
-                     style: TextStyle(color: colorScheme.onSurface.withOpacity(0.6))),
+    final miRecintoAsync = ref.watch(_miRecintoProvider);
+
+    return miRecintoAsync.when(
+      loading: () => const Scaffold(body: Center(child: CircularProgressIndicator())),
+      error: (e, _) => Scaffold(
+        appBar: AppBar(title: const Text('Mi Recinto')),
+        body: Center(child: Text('Error al cargar recinto: $e', style: TextStyle(color: colorScheme.error))),
+      ),
+      data: (recinto) {
+        if (recinto == null) {
+          return Scaffold(
+            appBar: AppBar(
+              title: const Text('Mi Recinto'),
+              actions: [
+                IconButton(
+                  icon: const Icon(Icons.refresh),
+                  tooltip: 'Actualizar Datos',
+                  onPressed: () async {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(content: Text('Actualizando información de tu usuario y recinto...')),
+                    );
+                    await ref.read(authNotifierProvider.notifier).verificarSesionActiva();
+                    ref.invalidate(_miRecintoProvider);
+                  },
+                ),
               ],
             ),
-          ),
-        ),
-      );
-    }
+            body: Center(
+              child: Padding(
+                padding: const EdgeInsets.all(24.0),
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(Icons.location_off, size: 64, color: colorScheme.error.withOpacity(0.5)),
+                    const SizedBox(height: 16),
+                    Text('No tienes un recinto asignado.', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: colorScheme.onSurface)),
+                    const SizedBox(height: 8),
+                    Text('Contacta al Coordinador Provincial para que te asigne a un Recinto.', 
+                         textAlign: TextAlign.center,
+                         style: TextStyle(color: colorScheme.onSurface.withOpacity(0.6))),
+                  ],
+                ),
+              ),
+            ),
+          );
+        }
 
-    final recintoAsync = ref.watch(_recintoAsignadoProvider(recintoId));
-    final jrvsAsync = ref.watch(_jrvsPorRecintoProvider(recintoId));
+        final jrvsAsync = ref.watch(_jrvsPorRecintoProvider(recinto.id));
 
-    return Scaffold(
-      backgroundColor: theme.scaffoldBackgroundColor,
-      appBar: AppBar(
-        title: const Text('Mi Recinto', style: TextStyle(fontWeight: FontWeight.bold)),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.refresh),
-            tooltip: 'Actualizar Datos',
-            onPressed: () async {
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text('Actualizando información de tu usuario y recinto...')),
-              );
-              await ref.read(authNotifierProvider.notifier).verificarSesionActiva();
-              ref.invalidate(_recintoAsignadoProvider);
-              ref.invalidate(_jrvsPorRecintoProvider);
-            },
+        return Scaffold(
+          backgroundColor: theme.scaffoldBackgroundColor,
+          appBar: AppBar(
+            title: const Text('Mi Recinto', style: TextStyle(fontWeight: FontWeight.bold)),
+            actions: [
+              IconButton(
+                icon: const Icon(Icons.refresh),
+                tooltip: 'Actualizar Datos',
+                onPressed: () async {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text('Actualizando información de tu usuario y recinto...')),
+                  );
+                  await ref.read(authNotifierProvider.notifier).verificarSesionActiva();
+                  ref.invalidate(_miRecintoProvider);
+                  ref.invalidate(_jrvsPorRecintoProvider(recinto.id));
+                },
+              ),
+              const ThemeToggleButton(),
+              const SyncIndicator(),
+            ],
           ),
-          const ThemeToggleButton(),
-          const SyncIndicator(),
-        ],
-      ),
-      body: recintoAsync.when(
-        data: (recinto) {
-          return Column(
+          body: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               // Header de Recinto
@@ -188,11 +221,9 @@ class MiRecintoScreen extends ConsumerWidget {
                 ),
               ),
             ],
-          );
-        },
-        loading: () => const Center(child: CircularProgressIndicator()),
-        error: (e, _) => Center(child: Text('Error al cargar datos del recinto', style: TextStyle(color: colorScheme.error))),
-      ),
+          ),
+        );
+      },
     );
   }
 }

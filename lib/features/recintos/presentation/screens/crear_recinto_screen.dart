@@ -25,6 +25,8 @@ class _CrearRecintoScreenState extends ConsumerState<CrearRecintoScreen> {
   final _jrvFormKey = GlobalKey<FormState>();
   final _nombreController = TextEditingController();
   final _direccionController = TextEditingController();
+  final _latController = TextEditingController();
+  final _lonController = TextEditingController();
   final _jrvCodigoController = TextEditingController();
 
   String? _provinciaSeleccionadaId;
@@ -39,6 +41,8 @@ class _CrearRecintoScreenState extends ConsumerState<CrearRecintoScreen> {
   void dispose() {
     _nombreController.dispose();
     _direccionController.dispose();
+    _latController.dispose();
+    _lonController.dispose();
     _jrvCodigoController.dispose();
     super.dispose();
   }
@@ -61,6 +65,8 @@ class _CrearRecintoScreenState extends ConsumerState<CrearRecintoScreen> {
             nombre: _nombreController.text,
             parroquiaId: _parroquiaSeleccionadaId!,
             direccion: _direccionController.text,
+            latRef: double.tryParse(_latController.text),
+            lonRef: double.tryParse(_lonController.text),
           );
 
       final state = ref.read(crearRecintoNotifierProvider);
@@ -170,6 +176,43 @@ class _CrearRecintoScreenState extends ConsumerState<CrearRecintoScreen> {
             validator: (v) => (v == null || v.trim().isEmpty)
                 ? 'La dirección es obligatoria'
                 : null,
+          ),
+          const SizedBox(height: 16),
+
+          Row(
+            children: [
+              Expanded(
+                child: _buildTextField(
+                  id: 'campo_latitud_recinto',
+                  controller: _latController,
+                  label: 'Latitud',
+                  hint: 'ej. -0.180653',
+                  icon: Icons.map_outlined,
+                  keyboardType: const TextInputType.numberWithOptions(decimal: true, signed: true),
+                  validator: (v) {
+                    if (v == null || v.trim().isEmpty) return 'Obligatorio';
+                    if (double.tryParse(v) == null) return 'Valor inválido';
+                    return null;
+                  },
+                ),
+              ),
+              const SizedBox(width: 16),
+              Expanded(
+                child: _buildTextField(
+                  id: 'campo_longitud_recinto',
+                  controller: _lonController,
+                  label: 'Longitud',
+                  hint: 'ej. -78.467834',
+                  icon: Icons.map_outlined,
+                  keyboardType: const TextInputType.numberWithOptions(decimal: true, signed: true),
+                  validator: (v) {
+                    if (v == null || v.trim().isEmpty) return 'Obligatorio';
+                    if (double.tryParse(v) == null) return 'Valor inválido';
+                    return null;
+                  },
+                ),
+              ),
+            ],
           ),
           const SizedBox(height: 24),
 
@@ -485,9 +528,11 @@ class _CrearRecintoScreenState extends ConsumerState<CrearRecintoScreen> {
     required IconData icon,
     String? Function(String?)? validator,
     VoidCallback? onEditingComplete,
+    TextInputType? keyboardType,
   }) {
     return TextFormField(
       controller: controller,
+      keyboardType: keyboardType,
       decoration: InputDecoration(
         labelText: label,
         hintText: hint,

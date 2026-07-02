@@ -98,12 +98,6 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                     color: colorScheme.primary,
                   ),
                 ),
-                const SizedBox(height: 8),
-                Text(
-                  'Fase 2: Autenticación de Operadores',
-                  textAlign: TextAlign.center,
-                  style: TextStyle(fontSize: 14, color: colorScheme.onSurface.withOpacity(0.54)),
-                ),
                 const SizedBox(height: 32),
 
                 // Formulario de login

@@ -10,13 +10,20 @@ import '../../domain/entities/jrv.dart';
 import '../../../../core/presentation/widgets/theme_toggle_button.dart';
 import '../../../sync/presentation/widgets/sync_indicator.dart';
 
-// Provider para listar las JRVs asignadas al veedor
+import '../../../usuarios/data/repositories/usuarios_repository_impl.dart';
+
+// Provider para listar las JRVs asignadas al veedor con sincronización online
 final _misJrvsProvider = FutureProvider.autoDispose<List<Jrv>>((ref) async {
   final usuario = ref.watch(currentUserProvider);
   if (usuario == null) return [];
 
+  final userRepo = ref.watch(usuarioRepositoryProvider);
   final db = ref.watch(appDatabaseProvider);
-  
+
+  // 1. Sincronizar asignaciones online
+  await userRepo.obtenerAsignacionesVeedor(usuario.id);
+
+  // 2. Resolver asignaciones guardadas en Drift
   final asignaciones = await (db.select(db.veedorJrvLocal)
     ..where((t) => t.veedorId.equals(usuario.id)))
     .get();
@@ -75,9 +82,19 @@ class MisJrvsScreen extends ConsumerWidget {
       backgroundColor: theme.scaffoldBackgroundColor,
       appBar: AppBar(
         title: const Text('Mis JRVs Asignadas', style: TextStyle(fontWeight: FontWeight.bold)),
-        actions: const [
-          ThemeToggleButton(),
-          SyncIndicator(),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.refresh),
+            tooltip: 'Actualizar Asignaciones',
+            onPressed: () {
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(content: Text('Actualizando mesas asignadas...')),
+              );
+              ref.invalidate(_misJrvsProvider);
+            },
+          ),
+          const ThemeToggleButton(),
+          const SyncIndicator(),
         ],
       ),
       body: Column(
