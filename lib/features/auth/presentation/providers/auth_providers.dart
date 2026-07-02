@@ -15,16 +15,23 @@ import '../screens/cambiar_password_screen.dart';
 import '../screens/recuperar_password_screen.dart';
 import '../../../recintos/presentation/screens/recintos_list_screen.dart';
 import '../../../recintos/presentation/screens/crear_recinto_screen.dart';
+import '../../../recintos/presentation/screens/mi_recinto_screen.dart';
+import '../../../recintos/presentation/screens/mis_jrv_screen.dart';
+import '../../../usuarios/presentation/screens/crear_usuario_screen.dart';
 import '../../../organizaciones/presentation/screens/organizaciones_list_screen.dart';
 import '../../../seeder/presentation/seeder_screen.dart';
 import '../../../actas/presentation/screens/registrar_acta_screen.dart';
 import '../../../actas/presentation/screens/mis_actas_screen.dart';
+import '../../../actas/presentation/screens/detalle_acta_screen.dart';
+import '../../../actas/domain/entities/acta.dart';
 
 import '../../../avance/presentation/screens/avance_electoral_screen.dart';
+import '../../../avance/presentation/screens/dashboard_votos_screen.dart';
 import '../../../usuarios/presentation/screens/asignar_coordinador_screen.dart';
 import '../../../usuarios/presentation/screens/asignar_veedores_screen.dart';
 import '../../../usuarios/presentation/screens/crear_usuario_screen.dart';
 import '../../../../core/presentation/widgets/theme_toggle_button.dart';
+import '../../../sync/presentation/screens/sync_estado_screen.dart';
 import 'auth_state.dart';
 
 part 'auth_providers.g.dart';
@@ -192,6 +199,14 @@ GoRouter goRouter(GoRouterRef ref) {
         path: '/recintos/crear',
         builder: (context, state) => const CrearRecintoScreen(),
       ),
+      GoRoute(
+        path: '/mi-recinto',
+        builder: (context, state) => const MiRecintoScreen(),
+      ),
+      GoRoute(
+        path: '/mis-jrvs',
+        builder: (context, state) => const MisJrvsScreen(),
+      ),
       // ── Fase 3: Organizaciones ────────────────────────────────────────
       GoRoute(
         path: '/organizaciones',
@@ -205,20 +220,37 @@ GoRouter goRouter(GoRouterRef ref) {
       // ── Fase 4: Actas ──────────────────────────────────────────────────
       GoRoute(
         path: '/actas/registrar',
-        builder: (context, state) => const RegistrarActaScreen(),
+        builder: (context, state) {
+          final acta = state.extra as Acta?;
+          return RegistrarActaScreen(actaExistente: acta);
+        },
       ),
       GoRoute(
         path: '/actas/mis-actas',
         builder: (context, state) => const MisActasScreen(),
       ),
       GoRoute(
+        path: '/actas/detalle',
+        builder: (context, state) {
+          final acta = state.extra as Acta;
+          return DetalleActaScreen(acta: acta);
+        },
+      ),
+      GoRoute(
         path: '/actas/asignar-veedores',
         builder: (context, state) => const AsignarVeedoresScreen(),
       ),
-      // ── Fase 5/6: Avance Electoral ──────────────────────────────────
+      GoRoute(
+        path: '/sync/estado',
+        builder: (context, state) => const SyncEstadoScreen(),
+      ),
       GoRoute(
         path: '/avance',
         builder: (context, state) => const AvanceElectoralScreen(),
+      ),
+      GoRoute(
+        path: '/avance/dashboard',
+        builder: (context, state) => const DashboardVotosScreen(),
       ),
       // ── Gap: Usuarios ────────────────────────────────────────────────
       GoRoute(
@@ -391,7 +423,7 @@ class _HomeScreen extends ConsumerWidget {
               ),
             ),
             const SizedBox(height: 32),
-            // Accesos rápidos
+            // Accesos rápidos comunes según rol
             Text(
               'ACCESOS RÁPIDOS',
               style: TextStyle(
@@ -401,21 +433,31 @@ class _HomeScreen extends ConsumerWidget {
                   fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 12),
-            _NavCard(
-              icon: Icons.map_outlined,
-              label: 'Recintos Electorales',
-              subtitle: 'Ver jerarquía provincial',
-              onTap: () => context.push('/recintos'),
-            ),
+            
+            // Recintos Electorales - Solo Provincial
+            if (usuario?.rol == AppRole.coordinadorProvincial)
+              _NavCard(
+                icon: Icons.map_outlined,
+                label: 'Recintos Electorales',
+                subtitle: 'Ver jerarquía provincial',
+                onTap: () => context.push('/recintos'),
+              ),
+            
             _NavCard(
               icon: Icons.how_to_vote_outlined,
               label: 'Organizaciones Políticas',
               subtitle: 'Listas por cargo electoral',
               onTap: () => context.push('/organizaciones'),
             ),
-            // Actas — visible para veedores y coordinadores
-            if (usuario?.rol == AppRole.veedor ||
-                usuario?.rol == AppRole.coordinadorRecinto) ...[
+
+            // Módulo Veedor
+            if (usuario?.rol == AppRole.veedor) ...[
+              _NavCard(
+                icon: Icons.how_to_vote_outlined,
+                label: 'Mis JRVs',
+                subtitle: 'Mesas asignadas a tu cargo',
+                onTap: () => context.push('/mis-jrvs'),
+              ),
               _NavCard(
                 icon: Icons.how_to_vote_rounded,
                 label: 'Registrar Acta',
@@ -428,9 +470,34 @@ class _HomeScreen extends ConsumerWidget {
                 subtitle: 'Ver actas registradas',
                 onTap: () => context.push('/actas/mis-actas'),
               ),
+              _NavCard(
+                icon: Icons.cloud_sync_outlined,
+                label: 'Estado de Sincronización',
+                subtitle: 'Ver cola y reintentar pendientes',
+                onTap: () => context.push('/sync/estado'),
+              ),
             ],
-            // Coordinador de Recinto — gestión de veedores
+
+            // Módulo Coordinador de Recinto
             if (usuario?.rol == AppRole.coordinadorRecinto) ...[
+              _NavCard(
+                icon: Icons.account_balance_outlined,
+                label: 'Mi Recinto',
+                subtitle: 'Ver información del recinto asignado',
+                onTap: () => context.push('/mi-recinto'),
+              ),
+              _NavCard(
+                icon: Icons.assignment_outlined,
+                label: 'Estado de Actas',
+                subtitle: 'Revisar actas de tu recinto',
+                onTap: () => context.push('/mi-recinto'),
+              ),
+              _NavCard(
+                icon: Icons.edit_note_outlined,
+                label: 'Corregir Actas',
+                subtitle: 'Editar datos o foto de actas del recinto',
+                onTap: () => context.push('/mi-recinto'),
+              ),
               if (AppPermissions.puedeCrearVeedores(usuario!.rol))
                 _NavCard(
                   icon: Icons.person_add_outlined,
@@ -440,12 +507,13 @@ class _HomeScreen extends ConsumerWidget {
                 ),
               if (AppPermissions.puedeAsignarVeedores(usuario.rol))
                 _NavCard(
-                  icon: Icons.people_outline,
-                  label: 'Asignar Veedores a JRV',
-                  subtitle: 'Vincular veedores con sus mesas',
+                  icon: Icons.swap_horiz_outlined,
+                  label: 'Asignar/Reasignar Veedores',
+                  subtitle: 'Vincular o cambiar veedores por mesa',
                   onTap: () => context.push('/actas/asignar-veedores'),
                 ),
             ],
+
             // Solo Coordinador Provincial
             if (usuario?.rol == AppRole.coordinadorProvincial) ...[
               _NavCard(
@@ -461,13 +529,20 @@ class _HomeScreen extends ConsumerWidget {
                 accentColor: Colors.amber,
                 onTap: () => context.push('/seeder'),
               ),
-              if (AppPermissions.puedeConsultarAvance(usuario!.rol))
+              if (AppPermissions.puedeConsultarAvance(usuario!.rol)) ...[
                 _NavCard(
                   icon: Icons.pie_chart_outline,
                   label: 'Avance Electoral',
                   subtitle: 'Progreso y coordenadas GPS',
                   onTap: () => context.push('/avance'),
                 ),
+                _NavCard(
+                  icon: Icons.analytics_outlined,
+                  label: 'Dashboard de Votos',
+                  subtitle: 'Votos por organización y dignidad',
+                  onTap: () => context.push('/avance/dashboard'),
+                ),
+              ],
               _NavCard(
                 icon: Icons.people_outline,
                 label: 'Asignar Coordinador de Recinto',
@@ -476,8 +551,8 @@ class _HomeScreen extends ConsumerWidget {
               ),
               _NavCard(
                 icon: Icons.person_add_outlined,
-                label: 'Crear Usuario',
-                subtitle: 'Registrar veedores y coordinadores',
+                label: 'Crear Coordinador de Recinto',
+                subtitle: 'Registrar coordinadores para recintos',
                 onTap: () => context.push('/usuarios/crear'),
               ),
             ],

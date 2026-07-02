@@ -38,7 +38,7 @@ export default async ({ req, res, log, error }) => {
 
   try {
     const payload = JSON.parse(req.bodyRaw || req.body || '{}');
-    const { cedula, nombres, apellidos, correo, telefono, rol } = payload;
+    const { cedula, nombres, apellidos, correo, telefono, rol, recintoId } = payload;
     const passwordDefault = 'Ecuador2026';
 
     if (!cedula || !correo || !nombres || !apellidos) {
@@ -90,25 +90,85 @@ export default async ({ req, res, log, error }) => {
 
     // 4(d). Crear registro en la BD usando el ID de Auth
     try {
+      const userDocument = {
+        cedula,
+        nombres,
+        apellidos,
+        correo,
+        telefono,
+        rol: rol || 'veedor',
+        passwordChanged: false
+      };
+      
+      if (recintoId) {
+        userDocument.recintoId = recintoId;
+      }
+
       const dbUser = await databases.createDocument(
         process.env.APPWRITE_DATABASE_ID,
         'usuarios',
         authUser.$id,
-        {
-          cedula,
-          nombres,
-          apellidos,
-          correo,
-          telefono,
-          rol: rol || 'veedor',
-          passwordChanged: false
-        },
+        userDocument,
         [
           Permission.read(Role.users()),
           Permission.update(Role.user(authUser.$id))
         ]
       );
-      return res.json({ success: true, data: dbUser });
+
+      let emailDebug = null;
+      try {
+        const sessionResponse = await fetch('https://nyc.cloud.appwrite.io/v1/account/sessions/email', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'X-Appwrite-Project': process.env.APPWRITE_FUNCTION_PROJECT_ID
+          },
+          body: JSON.stringify({
+            email: correo,
+            password: passwordDefault
+          })
+        });
+
+        const sessionText = await sessionResponse.text();
+        emailDebug = { sessionStatus: sessionResponse.status, sessionBody: sessionText };
+
+        if (sessionResponse.ok) {
+          const sessionData = JSON.parse(sessionText);
+          const sessionSecret = sessionData.secret;
+          const sessionId = sessionData.$id;
+
+          // Enviar email de verificación
+          const verifResponse = await fetch('https://nyc.cloud.appwrite.io/v1/account/verification', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'X-Appwrite-Project': process.env.APPWRITE_FUNCTION_PROJECT_ID,
+              'X-Appwrite-Session': sessionSecret
+            },
+            body: JSON.stringify({
+              url: 'https://control-electoral-reset.vercel.app/verify-email'
+            })
+          });
+          
+          emailDebug.verifStatus = verifResponse.status;
+          emailDebug.verifBody = await verifResponse.text();
+
+          // Cerrar sesión temporal
+          await fetch(`https://nyc.cloud.appwrite.io/v1/account/sessions/${sessionId}`, {
+            method: 'DELETE',
+            headers: {
+              'Content-Type': 'application/json',
+              'X-Appwrite-Project': process.env.APPWRITE_FUNCTION_PROJECT_ID,
+              'X-Appwrite-Session': sessionSecret
+            }
+          });
+        }
+      } catch (emailErr) {
+        emailDebug = { error: emailErr.message || emailErr };
+        error('Error al enviar email de verificación: ' + (emailErr.message || emailErr));
+      }
+
+      return res.json({ success: true, data: dbUser, emailDebug });
     } catch (dbErr) {
       // Compensación: revertir la creación en Auth para no dejar cuenta huérfana
       try {

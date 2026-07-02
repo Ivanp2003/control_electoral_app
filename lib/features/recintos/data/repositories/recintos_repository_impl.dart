@@ -161,6 +161,16 @@ class RecintosRepositoryImpl implements RecintosRepository {
 
   @override
   Future<Either<Failure, Recinto>> obtenerRecintoPorId(String id) async {
+    final online = await _connectivity.isConnected;
+    if (online) {
+      try {
+        final recintoModel = await _remote.obtenerRecintoPorId(id);
+        await _local.guardarRecintos([recintoModel]);
+        return Right(recintoModel);
+      } catch (_) {
+        // Fallback local en caso de error remoto
+      }
+    }
     final cached = await _local.obtenerRecintoPorId(id);
     if (cached == null) {
       return const Left(CacheFailure('Recinto no encontrado localmente.'));
@@ -238,6 +248,36 @@ class RecintosRepositoryImpl implements RecintosRepository {
       return Right(recinto);
     } on AppwriteException catch (e) {
       return Left(ServerFailure(e.message ?? 'Error al crear el recinto en el servidor.'));
+    } catch (e) {
+      return Left(ServerFailure(e.toString()));
+    }
+  }
+
+  // ---------------------------------------------------------------------------
+  // Crear JRV (Administrativo)
+  // ---------------------------------------------------------------------------
+
+  @override
+  Future<Either<Failure, Jrv>> crearJrv({
+    required String codigo,
+    required String recintoId,
+  }) async {
+    final online = await _connectivity.isConnected;
+    if (!online) {
+      return const Left(NoConnectionFailure());
+    }
+
+    try {
+      final jrvModel = await _remote.crearJrv(
+        id: const Uuid().v4(),
+        codigo: codigo,
+        recintoId: recintoId,
+      );
+
+      // Guardar también en la caché local para consistencia inmediata
+      await _local.guardarJrv([jrvModel]);
+
+      return Right(jrvModel);
     } catch (e) {
       return Left(ServerFailure(e.toString()));
     }

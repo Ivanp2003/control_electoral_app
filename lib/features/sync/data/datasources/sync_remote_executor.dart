@@ -238,6 +238,18 @@ class SyncRemoteExecutorImpl implements SyncRemoteExecutor {
               throw PermanentSyncFailureException('No se encontró el usuario con cédula $cedula');
             }
             final coordinadorId = userDocs.documents.first.$id;
+            
+            // 1. Vincular el recinto al coordinador en Appwrite
+            await _databases.updateDocument(
+              databaseId: AppwriteConfig.databaseId,
+              collectionId: AppwriteConfig.collectionUsuarios,
+              documentId: coordinadorId,
+              data: {
+                'recintoId': payload['recintoId'] as String,
+              },
+            );
+
+            // 2. Vincular el coordinador al recinto en Appwrite
             await _executeUpsert(
               operation: 'UPDATE',
               collectionId: AppwriteConfig.collectionRecintos,

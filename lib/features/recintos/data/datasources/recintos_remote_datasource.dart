@@ -18,6 +18,7 @@ abstract class RecintosRemoteDatasource {
   Future<List<ParroquiaModel>> obtenerParroquias(String cantonId);
   Future<List<RecintoModel>> obtenerRecintos(String parroquiaId);
   Future<List<JrvModel>> obtenerJrvPorRecinto(String recintoId);
+  Future<RecintoModel> obtenerRecintoPorId(String id);
   Future<RecintoModel> crearRecinto({
     required String id,
     required String nombre,
@@ -25,6 +26,11 @@ abstract class RecintosRemoteDatasource {
     required String direccion,
     double? latRef,
     double? lonRef,
+  });
+  Future<JrvModel> crearJrv({
+    required String id,
+    required String codigo,
+    required String recintoId,
   });
 }
 
@@ -117,5 +123,33 @@ class RecintosRemoteDatasourceImpl implements RecintosRemoteDatasource {
       },
     );
     return RecintoModel.fromAppwriteDoc(doc.data);
+  }
+
+  @override
+  Future<RecintoModel> obtenerRecintoPorId(String id) async {
+    final doc = await _databases.getDocument(
+      databaseId: _db,
+      collectionId: AppwriteConfig.collectionRecintos,
+      documentId: id,
+    );
+    return RecintoModel.fromAppwriteDoc(doc.data);
+  }
+
+  @override
+  Future<JrvModel> crearJrv({
+    required String id,
+    required String codigo,
+    required String recintoId,
+  }) async {
+    final result = await _databases.createDocument(
+      databaseId: _db,
+      collectionId: AppwriteConfig.collectionJrv,
+      documentId: id,
+      data: {
+        'codigo': codigo,
+        'recintoId': recintoId,
+      },
+    );
+    return JrvModel.fromAppwriteDoc(result.data);
   }
 }

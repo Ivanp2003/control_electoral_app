@@ -36,5 +36,6 @@ abstract class AuthRepository {
     required String telefono,
     required String correo,
     required String rol,
+    String? recintoId,
   });
 }

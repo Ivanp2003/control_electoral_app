@@ -6,7 +6,7 @@ part of 'appwrite_client.dart';
 // RiverpodGenerator
 // **************************************************************************
 
-String _$appwriteServicesHash() => r'aafdb748fc9bb508fd917228fe09ae8ef6ed86fb';
+String _$appwriteServicesHash() => r'27eb14ee94da146a5b393f51f37a5710f3d0b330';
 
 /// Proveedor del wrapper de servicios de Appwrite.
 /// Al usar (keepAlive: true), se comporta como un singleton persistente dentro de la app.

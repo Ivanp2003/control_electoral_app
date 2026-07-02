@@ -207,6 +207,13 @@ class _AsignarCoordinadorScreenState
   Future<void> _asignar(
       RecintosLocalData recinto, String cedula) async {
     final db = ref.read(appDatabaseProvider);
+
+    // 1. Local-write: Actualizar de inmediato el coordinadorId del recinto local en Drift
+    // Nota: El usuario actual no se almacena en una tabla local usuariosLocal en Drift,
+    // pero marcamos al recinto local con un marcador temporal de 'asignado' para indicar que se vinculó.
+    await db.update(db.recintosLocal).replace(recinto.copyWith(coordinadorId: Value('cedula:$cedula')));
+
+    // 2. Encolar la sincronización a Appwrite (que hará la vinculación bidireccional)
     await db.encolarOperacion(SyncQueueCompanion(
       entityType: const Value('recinto'),
       operation: const Value('asignarCoordinador'),

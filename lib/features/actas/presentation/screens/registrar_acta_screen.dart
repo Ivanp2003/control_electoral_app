@@ -18,9 +18,11 @@ import '../../domain/usecases/registrar_acta_usecase.dart';
 import '../providers/actas_providers.dart';
 import '../../../sync/presentation/widgets/sync_indicator.dart';
 import '../../../../core/presentation/widgets/theme_toggle_button.dart';
+import '../../../recintos/presentation/providers/jrv_context_provider.dart';
 
 class RegistrarActaScreen extends ConsumerStatefulWidget {
-  const RegistrarActaScreen({super.key});
+  final Acta? actaExistente;
+  const RegistrarActaScreen({super.key, this.actaExistente});
 
   @override
   ConsumerState<RegistrarActaScreen> createState() =>
@@ -41,6 +43,34 @@ class _RegistrarActaScreenState extends ConsumerState<RegistrarActaScreen> {
   String? _error;
   bool _guardando = false;
   EvidenciaData? _evidencia;
+
+  @override
+  void initState() {
+    super.initState();
+    if (widget.actaExistente != null) {
+      final acta = widget.actaExistente!;
+      _cargoSeleccionado = acta.cargoElectoral;
+      _totalCtrl.text = acta.totalSufragantes.toString();
+      _blancosCtrl.text = acta.votosBlancos.toString();
+      _nulosCtrl.text = acta.votosNulos.toString();
+      _jrvSeleccionado = JrvModel(id: acta.jrvId, codigo: 'JRV', recintoId: '');
+      _paso = _PasoRegistro.llenarDatos;
+      _cargarOrganizacionesParaEdicion(acta);
+    }
+  }
+
+  Future<void> _cargarOrganizacionesParaEdicion(Acta acta) async {
+    await _cargarOrganizaciones();
+    setState(() {
+      for (final orgVoto in acta.organizaciones) {
+        if (_votosControllers.containsKey(orgVoto.organizacionId)) {
+          _votosControllers[orgVoto.organizacionId]!.text = orgVoto.votos.toString();
+        } else {
+          _votosControllers[orgVoto.organizacionId] = TextEditingController(text: orgVoto.votos.toString());
+        }
+      }
+    });
+  }
 
   @override
   void dispose() {
@@ -87,8 +117,32 @@ class _RegistrarActaScreenState extends ConsumerState<RegistrarActaScreen> {
     return Scaffold(
       backgroundColor: theme.scaffoldBackgroundColor,
       appBar: AppBar(
-        title: const Text('Registrar Acta',
-            style: TextStyle(fontWeight: FontWeight.bold)),
+        title: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(widget.actaExistente != null ? 'Corregir Acta' : 'Registrar Acta',
+                style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18)),
+            if (_jrvSeleccionado != null)
+              Consumer(
+                builder: (context, ref, child) {
+                  final ctxAsync = ref.watch(jrvContextProvider(_jrvSeleccionado!.id));
+                  return ctxAsync.when(
+                    data: (contexto) => Text(contexto,
+                        style: TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.normal,
+                            color: theme.colorScheme.onSurface.withOpacity(0.7))),
+                    loading: () => Text('Cargando contexto...',
+                        style: TextStyle(
+                            fontSize: 12,
+                            color: theme.colorScheme.onSurface.withOpacity(0.5))),
+                    error: (_, __) => const Text('Error al cargar contexto',
+                        style: TextStyle(fontSize: 12, color: Colors.red)),
+                  );
+                },
+              ),
+          ],
+        ),
         actions: const [
           ThemeToggleButton(),
           SyncIndicator(),
@@ -150,22 +204,38 @@ class _RegistrarActaScreenState extends ConsumerState<RegistrarActaScreen> {
           itemCount: jrvList.length,
           itemBuilder: (context, index) {
             final jrv = jrvList[index];
-            return Card(
-              color: surfaceColor,
-              margin: const EdgeInsets.only(bottom: 12),
-              child: ListTile(
-                title: Text(jrv.codigo,
-                    style: TextStyle(
-                        color: colorScheme.onSurface, fontWeight: FontWeight.bold)),
-                trailing: Icon(Icons.chevron_right, color: colorScheme.onSurface.withOpacity(0.54)),
-                onTap: () {
-                  setState(() {
-                    _jrvSeleccionado = jrv;
-                    _paso = _PasoRegistro.llenarDatos;
-                  });
-                  _cargarOrganizaciones();
-                },
-              ),
+            return FutureBuilder<String>(
+              future: (() async {
+                final recinto = await (ref.read(appDatabaseProvider).select(
+                  ref.read(appDatabaseProvider).recintosLocal)
+                  ..where((t) => t.id.equals(jrv.recintoId)))
+                  .getSingleOrNull();
+                return recinto?.nombre ?? '';
+              })(),
+              builder: (context, snap) {
+                return Card(
+                  color: surfaceColor,
+                  margin: const EdgeInsets.only(bottom: 12),
+                  child: ListTile(
+                    title: Text(jrv.codigo,
+                        style: TextStyle(
+                            color: colorScheme.onSurface, fontWeight: FontWeight.bold)),
+                    subtitle: snap.hasData && snap.data!.isNotEmpty
+                        ? Text(snap.data!,
+                            style: TextStyle(
+                                color: colorScheme.onSurface.withOpacity(0.55), fontSize: 12))
+                        : null,
+                    trailing: Icon(Icons.chevron_right, color: colorScheme.onSurface.withOpacity(0.54)),
+                    onTap: () {
+                      setState(() {
+                        _jrvSeleccionado = jrv;
+                        _paso = _PasoRegistro.llenarDatos;
+                      });
+                      _cargarOrganizaciones();
+                    },
+                  ),
+                );
+              },
             );
           },
         );
@@ -240,18 +310,22 @@ class _RegistrarActaScreenState extends ConsumerState<RegistrarActaScreen> {
             ..._organizaciones.map((org) => _VotoField(
                   label: org.nombre,
                   controller: _votosControllers[org.id]!,
+                  onChanged: _validarEnTiempoReal,
                 )),
             Divider(color: colorScheme.onSurface.withOpacity(0.12), height: 24),
             _VotoField(
                 label: 'Votos en Blanco',
-                controller: _blancosCtrl),
+                controller: _blancosCtrl,
+                onChanged: _validarEnTiempoReal),
             _VotoField(
                 label: 'Votos Nulos',
-                controller: _nulosCtrl),
+                controller: _nulosCtrl,
+                onChanged: _validarEnTiempoReal),
             Divider(color: colorScheme.onSurface.withOpacity(0.12), height: 24),
             _VotoField(
                 label: 'Total Sufragantes',
-                controller: _totalCtrl),
+                controller: _totalCtrl,
+                onChanged: _validarEnTiempoReal),
             const SizedBox(height: 24),
             if (_error != null)
               Container(
@@ -293,7 +367,7 @@ class _RegistrarActaScreenState extends ConsumerState<RegistrarActaScreen> {
     );
   }
 
-  void _validarYResumir() {
+  void _validarEnTiempoReal() {
     final votos = _organizaciones
         .map((org) => int.tryParse(
                 _votosControllers[org.id]?.text ?? '') ??
@@ -315,12 +389,18 @@ class _RegistrarActaScreenState extends ConsumerState<RegistrarActaScreen> {
         setState(() => _error = failure.message);
       },
       (_) {
-        setState(() {
-          _error = null;
-          _paso = _PasoRegistro.evidencia;
-        });
+        setState(() => _error = null);
       },
     );
+  }
+
+  void _validarYResumir() {
+    _validarEnTiempoReal();
+    if (_error == null) {
+      setState(() {
+        _paso = _PasoRegistro.evidencia;
+      });
+    }
   }
 
   Widget _PasoEvidencia() {
@@ -341,10 +421,21 @@ class _RegistrarActaScreenState extends ConsumerState<RegistrarActaScreen> {
                     color: colorScheme.onSurface,
                     fontSize: 20,
                     fontWeight: FontWeight.bold)),
+            const SizedBox(height: 8),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+              decoration: BoxDecoration(
+                color: colorScheme.primary.withOpacity(0.1),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Text(
+                'Acta de ${_cargoSeleccionado == "alcalde" ? "Alcalde" : "Prefecto"}',
+                style: TextStyle(color: colorScheme.primary, fontWeight: FontWeight.bold),
+              ),
+            ),
             const SizedBox(height: 12),
             Text(
-              'Captura una fotografía nítida del acta '
-              'y registra tu ubicación GPS.',
+              'La fotografía es obligatoria. Captura una imagen nítida del acta y registra tu ubicación GPS.',
               textAlign: TextAlign.center,
               style: TextStyle(color: colorScheme.onSurface.withOpacity(0.54), fontSize: 14),
             ),
@@ -357,6 +448,13 @@ class _RegistrarActaScreenState extends ConsumerState<RegistrarActaScreen> {
                   const SizedBox(height: 8),
                   const Text('Evidencia capturada',
                       style: TextStyle(color: Colors.greenAccent)),
+                  const SizedBox(height: 4),
+                  TextButton.icon(
+                    onPressed: _navegarACapturaEvidencia,
+                    icon: const Icon(Icons.refresh, size: 16),
+                    label: const Text('Volver a tomar'),
+                    style: TextButton.styleFrom(foregroundColor: colorScheme.onSurface.withOpacity(0.6)),
+                  ),
                   const SizedBox(height: 16),
                   SizedBox(
                     width: double.infinity,
@@ -377,29 +475,41 @@ class _RegistrarActaScreenState extends ConsumerState<RegistrarActaScreen> {
                 ],
               )
             else
-              SizedBox(
-                width: double.infinity,
-                height: 52,
-                child: ElevatedButton.icon(
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: colorScheme.primary,
-                    foregroundColor: colorScheme.onPrimary,
-                    shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12)),
+              Column(
+                children: [
+                  SizedBox(
+                    width: double.infinity,
+                    height: 52,
+                    child: ElevatedButton.icon(
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: colorScheme.primary,
+                        foregroundColor: colorScheme.onPrimary,
+                        shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12)),
+                      ),
+                      icon: const Icon(Icons.camera_alt),
+                      label: const Text('Tomar Fotografía',
+                          style: TextStyle(fontSize: 16)),
+                      onPressed: _navegarACapturaEvidencia,
+                    ),
                   ),
-                  icon: const Icon(Icons.camera_alt),
-                  label: const Text('Tomar Fotografía',
-                      style: TextStyle(fontSize: 16)),
-                  onPressed: _navegarACapturaEvidencia,
-                ),
+                  const SizedBox(height: 12),
+                  SizedBox(
+                    width: double.infinity,
+                    height: 44,
+                    child: OutlinedButton(
+                      onPressed: () =>
+                          setState(() => _paso = _PasoRegistro.llenarDatos),
+                      style: OutlinedButton.styleFrom(
+                        foregroundColor: colorScheme.onSurface.withOpacity(0.6),
+                        side: BorderSide(color: colorScheme.onSurface.withOpacity(0.2)),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                      ),
+                      child: const Text('Volver a los datos'),
+                    ),
+                  ),
+                ],
               ),
-            const SizedBox(height: 12),
-            TextButton(
-              onPressed: () =>
-                  setState(() => _paso = _PasoRegistro.llenarDatos),
-              child: Text('Omitir y volver',
-                  style: TextStyle(color: colorScheme.onSurface.withOpacity(0.38))),
-            ),
           ],
         ),
       ),
@@ -639,7 +749,8 @@ class _CargoBoton extends StatelessWidget {
 class _VotoField extends StatelessWidget {
   final String label;
   final TextEditingController controller;
-  const _VotoField({required this.label, required this.controller});
+  final VoidCallback? onChanged;
+  const _VotoField({required this.label, required this.controller, this.onChanged});
 
   @override
   Widget build(BuildContext context) {
@@ -658,6 +769,7 @@ class _VotoField extends StatelessWidget {
             width: 100,
             child: TextField(
               controller: controller,
+              onChanged: (_) => onChanged?.call(),
               keyboardType: TextInputType.number,
               style: TextStyle(color: colorScheme.onSurface),
               decoration: InputDecoration(

@@ -204,6 +204,7 @@ class _RecuperarPasswordScreenState extends ConsumerState<RecuperarPasswordScree
 
     return Form(
       key: _requestFormKey,
+      autovalidateMode: AutovalidateMode.onUserInteraction,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
@@ -278,6 +279,7 @@ class _RecuperarPasswordScreenState extends ConsumerState<RecuperarPasswordScree
 
     return Form(
       key: _confirmFormKey,
+      autovalidateMode: AutovalidateMode.onUserInteraction,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [

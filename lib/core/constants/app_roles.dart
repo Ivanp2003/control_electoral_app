@@ -69,7 +69,7 @@ class AppPermissions {
 
   /// Permite asignar veedores a JRV.
   static bool puedeAsignarVeedores(AppRole role) =>
-      role == AppRole.coordinadorRecinto || role == AppRole.coordinadorProvincial;
+      role == AppRole.coordinadorRecinto;
 
   /// Permite reasignar veedores entre JRV dentro de su recinto.
   /// [RESTAURADO Fase 3] — ver nota anterior sobre fusión incorrecta.

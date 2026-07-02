@@ -16,6 +16,7 @@ class Usuario extends Equatable {
   final String correo;
   final AppRole rol;
   final bool passwordChanged;
+  final String? recintoId;
 
   const Usuario({
     required this.id,
@@ -26,6 +27,7 @@ class Usuario extends Equatable {
     required this.correo,
     required this.rol,
     required this.passwordChanged,
+    this.recintoId,
   });
 
   @override
@@ -38,5 +40,6 @@ class Usuario extends Equatable {
         correo,
         rol,
         passwordChanged,
+        recintoId,
       ];
 }

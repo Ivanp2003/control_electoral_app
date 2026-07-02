@@ -41,6 +41,7 @@ abstract class AuthRemoteDatasource {
     required String telefono,
     required String correo,
     required String rol,
+    String? recintoId,
   });
 }
 
@@ -170,6 +171,7 @@ class AuthRemoteDatasourceImpl implements AuthRemoteDatasource {
     required String telefono,
     required String correo,
     required String rol,
+    String? recintoId,
   }) async {
     final execution = await _functions.createExecution(
       functionId: '6a3df55e0012af07bdbd', // crear_usuario
@@ -181,6 +183,7 @@ class AuthRemoteDatasourceImpl implements AuthRemoteDatasource {
         'correo': correo,
         'rol': rol,
         'password': AppwriteConfig.passwordInicial,
+        if (recintoId != null) 'recintoId': recintoId,
       }),
     );
 

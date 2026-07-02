@@ -17,6 +17,7 @@ class UsuarioModel extends Usuario {
     required super.correo,
     required super.rol,
     required super.passwordChanged,
+    super.recintoId,
   });
 
   /// Crea una instancia a partir de un mapa JSON proveniente de Appwrite.
@@ -42,6 +43,7 @@ class UsuarioModel extends Usuario {
       correo: json['correo'] as String? ?? '',
       rol: parsedRol,
       passwordChanged: json['passwordChanged'] as bool? ?? false,
+      recintoId: json['recintoId'] as String?,
     );
   }
 
@@ -55,10 +57,10 @@ class UsuarioModel extends Usuario {
       'correo': correo,
       'rol': rol.name,
       'passwordChanged': passwordChanged,
+      if (recintoId != null) 'recintoId': recintoId,
     };
   }
 
-  /// Convierte este modelo a la entidad pura de dominio [Usuario].
   Usuario toDomain() {
     return Usuario(
       id: id,
@@ -69,6 +71,7 @@ class UsuarioModel extends Usuario {
       correo: correo,
       rol: rol,
       passwordChanged: passwordChanged,
+      recintoId: recintoId,
     );
   }
 }

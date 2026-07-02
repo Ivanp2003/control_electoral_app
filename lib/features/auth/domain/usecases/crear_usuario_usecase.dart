@@ -22,6 +22,7 @@ class CrearUsuarioUseCase {
     required String telefono,
     required String correo,
     required String rol,
+    String? recintoId,
   }) async {
     // 1. Validar cédula ecuatoriana
     if (!esCedulaValida(cedula)) {
@@ -51,6 +52,7 @@ class CrearUsuarioUseCase {
       telefono: telefono,
       correo: correo,
       rol: rol,
+      recintoId: recintoId,
     );
   }
 }

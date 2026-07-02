@@ -25,6 +25,26 @@ class _AsignarVeedoresScreenState
   bool _asignando = false;
 
   @override
+  void initState() {
+    super.initState();
+    // Autoseleccionar recinto para el Coordinador de Recinto
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      final usuario = ref.read(currentUserProvider);
+      if (usuario != null && usuario.rol == AppRole.coordinadorRecinto && usuario.recintoId != null) {
+        final db = ref.read(appDatabaseProvider);
+        final recintoLocal = await (db.select(db.recintosLocal)
+          ..where((t) => t.id.equals(usuario.recintoId!)))
+          .getSingleOrNull();
+        if (mounted && recintoLocal != null) {
+          setState(() {
+            _recintoSeleccionado = recintoLocal;
+          });
+        }
+      }
+    });
+  }
+
+  @override
   Widget build(BuildContext context) {
     final usuario = ref.watch(currentUserProvider);
     final db = ref.read(appDatabaseProvider);
@@ -43,11 +63,13 @@ class _AsignarVeedoresScreenState
       );
     }
 
+    final esCoordinadorRecinto = usuario.rol == AppRole.coordinadorRecinto;
+
     return Scaffold(
       backgroundColor: theme.scaffoldBackgroundColor,
       appBar: AppBar(
-        title: const Text('Asignar Veedores',
-            style: TextStyle(fontWeight: FontWeight.bold)),
+        title: Text(esCoordinadorRecinto ? 'Asignar / Reasignar Veedor' : 'Asignar Veedores',
+            style: const TextStyle(fontWeight: FontWeight.bold)),
         actions: const [
           ThemeToggleButton(),
         ],
@@ -55,10 +77,23 @@ class _AsignarVeedoresScreenState
       body: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Padding(
-            padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
-            child: _seleccionarRecinto(db, colorScheme, surfaceColor),
-          ),
+          if (!esCoordinadorRecinto)
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
+              child: _seleccionarRecinto(db, colorScheme, surfaceColor),
+            )
+          else if (_recintoSeleccionado != null)
+            Padding(
+              padding: const EdgeInsets.all(16.0),
+              child: Card(
+                color: surfaceColor,
+                child: ListTile(
+                  leading: Icon(Icons.apartment, color: colorScheme.primary),
+                  title: Text(_recintoSeleccionado!.nombre, style: const TextStyle(fontWeight: FontWeight.bold)),
+                  subtitle: Text('Tu Recinto Asignado - Parroquia: ${_recintoSeleccionado!.parroquiaId}'),
+                ),
+              ),
+            ),
           if (_recintoSeleccionado != null) ...[
             Padding(
               padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
@@ -78,6 +113,7 @@ class _AsignarVeedoresScreenState
                   style: const TextStyle(color: Colors.greenAccent)),
             ),
           if (_jrvSeleccionada != null) ...[
+            _buildVeedorActualWidget(db, colorScheme, surfaceColor),
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
               child: _buildAsignarSeccion(veedoresAsync, usuario, colorScheme, surfaceColor),
@@ -149,12 +185,48 @@ class _AsignarVeedoresScreenState
           ),
           items: jrvs.map((j) {
             return DropdownMenuItem(
-                value: j, child: Text('${j.codigo} (${j.id})'));
+                value: j, child: Text('${j.codigo}'));
           }).toList(),
           onChanged: (j) => setState(() {
             _jrvSeleccionada = j;
             _mensaje = null;
           }),
+        );
+      },
+    );
+  }
+
+  Widget _buildVeedorActualWidget(AppDatabase db, ColorScheme colorScheme, Color surfaceColor) {
+    return FutureBuilder<VeedorJrvLocalData?>(
+      future: (db.select(db.veedorJrvLocal)..where((t) => t.jrvId.equals(_jrvSeleccionada!.id))).getSingleOrNull(),
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return const Padding(
+            padding: EdgeInsets.symmetric(horizontal: 16),
+            child: LinearProgressIndicator(),
+          );
+        }
+        final asignacion = snapshot.data;
+        if (asignacion == null) {
+          return const SizedBox.shrink();
+        }
+        return Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+          child: Card(
+            color: Colors.orange.withOpacity(0.1),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(8),
+              side: const BorderSide(color: Colors.orangeAccent, width: 1),
+            ),
+            child: ListTile(
+              leading: const Icon(Icons.warning_amber, color: Colors.orangeAccent),
+              title: const Text('JRV ya asignada', style: TextStyle(fontWeight: FontWeight.bold, color: Colors.orangeAccent)),
+              subtitle: Text(
+                'Veedor ID actual: ${asignacion.veedorId}\nAsignar un nuevo veedor reescribirá la asignación actual sin borrar sus actas.',
+                style: const TextStyle(fontSize: 12),
+              ),
+            ),
+          ),
         );
       },
     );
@@ -195,38 +267,50 @@ class _AsignarVeedoresScreenState
                   style: TextStyle(color: colorScheme.onSurface.withOpacity(0.54)));
             }
             return SizedBox(
-              height: 300,
+              height: 220,
               child: ListView.builder(
                 itemCount: veedores.length,
                 itemBuilder: (_, i) {
                   final v = veedores[i];
-                  return Card(
-                    color: surfaceColor,
-                    margin: const EdgeInsets.only(bottom: 6),
-                    child: ListTile(
-                      dense: true,
-                      leading: Icon(Icons.person_outline,
-                          color: colorScheme.primary),
-                      title: Text('${v.nombres} ${v.apellidos}',
-                          style: TextStyle(
-                              color: colorScheme.onSurface, fontSize: 14)),
-                      subtitle: Text('C.I.: ${v.cedula}',
-                          style: TextStyle(
-                              color: colorScheme.onSurface.withOpacity(0.38), fontSize: 12)),
-                      trailing: _asignando
-                          ? SizedBox(
-                              width: 20,
-                              height: 20,
-                              child: CircularProgressIndicator(
-                                  strokeWidth: 2,
-                                  color: colorScheme.primary))
-                          : IconButton(
-                              icon: Icon(Icons.person_add,
-                                  color: colorScheme.primary),
-                              onPressed: () =>
-                                  _asignarVeedor(v.id, '${v.nombres} ${v.apellidos}', currentUser),
-                            ),
-                    ),
+                  return FutureBuilder<VeedorJrvLocalData?>(
+                    future: (ref.read(appDatabaseProvider).select(ref.read(appDatabaseProvider).veedorJrvLocal)
+                      ..where((t) => t.jrvId.equals(_jrvSeleccionada!.id))).getSingleOrNull(),
+                    builder: (context, snap) {
+                      final yaAsignado = snap.data != null;
+                      final esMismoVeedor = yaAsignado && snap.data!.veedorId == v.id;
+
+                      return Card(
+                        color: surfaceColor,
+                        margin: const EdgeInsets.only(bottom: 6),
+                        child: ListTile(
+                          dense: true,
+                          leading: Icon(Icons.person_outline,
+                              color: esMismoVeedor ? Colors.green : colorScheme.primary),
+                          title: Text('${v.nombres} ${v.apellidos}',
+                              style: TextStyle(
+                                  color: colorScheme.onSurface, fontSize: 14, fontWeight: esMismoVeedor ? FontWeight.bold : FontWeight.normal)),
+                          subtitle: Text('C.I.: ${v.cedula}',
+                              style: TextStyle(
+                                  color: colorScheme.onSurface.withOpacity(0.38), fontSize: 12)),
+                          trailing: esMismoVeedor
+                              ? const Text('Asignado', style: TextStyle(color: Colors.green, fontWeight: FontWeight.bold))
+                              : _asignando
+                                  ? SizedBox(
+                                      width: 20,
+                                      height: 20,
+                                      child: CircularProgressIndicator(
+                                          strokeWidth: 2,
+                                          color: colorScheme.primary))
+                                  : IconButton(
+                                      icon: Icon(yaAsignado ? Icons.swap_horiz : Icons.person_add,
+                                          color: yaAsignado ? Colors.orange : colorScheme.primary),
+                                      tooltip: yaAsignado ? 'Reasignar a esta mesa' : 'Asignar a esta mesa',
+                                      onPressed: () =>
+                                          _asignarVeedor(v.id, '${v.nombres} ${v.apellidos}', currentUser, yaAsignado),
+                                    ),
+                        ),
+                      );
+                    },
                   );
                 },
               ),
@@ -238,7 +322,7 @@ class _AsignarVeedoresScreenState
   }
 
   Future<void> _asignarVeedor(
-      String veedorId, String nombreVeedor, Usuario? currentUser) async {
+      String veedorId, String nombreVeedor, Usuario? currentUser, bool esReasignacion) async {
     if (_jrvSeleccionada == null || _recintoSeleccionado == null) return;
 
     setState(() {
@@ -266,7 +350,9 @@ class _AsignarVeedoresScreenState
         );
       }),
       (_) => setState(() {
-        _mensaje = '$nombreVeedor asignado correctamente a la ${_jrvSeleccionada!.codigo}';
+        _mensaje = esReasignacion
+            ? 'Veedor reasignado correctamente: $nombreVeedor ahora está a cargo de la ${_jrvSeleccionada!.codigo}'
+            : '$nombreVeedor asignado correctamente a la ${_jrvSeleccionada!.codigo}';
         _asignando = false;
       }),
     );

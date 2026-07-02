@@ -136,6 +136,7 @@ class AuthRepositoryImpl implements AuthRepository {
     required String telefono,
     required String correo,
     required String rol,
+    String? recintoId,
   }) async {
     if (!await _checkConnection()) {
       return const Left(NoConnectionFailure());
@@ -149,6 +150,7 @@ class AuthRepositoryImpl implements AuthRepository {
         telefono: telefono,
         correo: correo,
         rol: rol,
+        recintoId: recintoId,
       );
       return const Right(unit);
     } on CedulaDuplicadaException {

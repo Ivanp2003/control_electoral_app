@@ -631,6 +631,23 @@ class _JrvPorRecintoProviderElement
   String get recintoId => (origin as JrvPorRecintoProvider).recintoId;
 }
 
+String _$crearJrvUseCaseHash() => r'f369760613d92478e9fcf08d4350c5312f4024e9';
+
+/// See also [crearJrvUseCase].
+@ProviderFor(crearJrvUseCase)
+final crearJrvUseCaseProvider = Provider<CrearJrvUseCase>.internal(
+  crearJrvUseCase,
+  name: r'crearJrvUseCaseProvider',
+  debugGetCreateSourceHash: const bool.fromEnvironment('dart.vm.product')
+      ? null
+      : _$crearJrvUseCaseHash,
+  dependencies: null,
+  allTransitiveDependencies: null,
+);
+
+@Deprecated('Will be removed in 3.0. Use Ref instead')
+// ignore: unused_element
+typedef CrearJrvUseCaseRef = ProviderRef<CrearJrvUseCase>;
 String _$crearRecintoNotifierHash() =>
     r'94a695c33d3f120287c4253f1f5232613e192860';
 
@@ -651,5 +668,21 @@ final crearRecintoNotifierProvider =
     );
 
 typedef _$CrearRecintoNotifier = AutoDisposeNotifier<AsyncValue<Recinto?>>;
+String _$crearJrvNotifierHash() => r'972161b39324b1bc163bfc4dc760188a5020a71e';
+
+/// See also [CrearJrvNotifier].
+@ProviderFor(CrearJrvNotifier)
+final crearJrvNotifierProvider =
+    AutoDisposeNotifierProvider<CrearJrvNotifier, AsyncValue<Jrv?>>.internal(
+      CrearJrvNotifier.new,
+      name: r'crearJrvNotifierProvider',
+      debugGetCreateSourceHash: const bool.fromEnvironment('dart.vm.product')
+          ? null
+          : _$crearJrvNotifierHash,
+      dependencies: null,
+      allTransitiveDependencies: null,
+    );
+
+typedef _$CrearJrvNotifier = AutoDisposeNotifier<AsyncValue<Jrv?>>;
 // ignore_for_file: type=lint
 // ignore_for_file: subtype_of_sealed_class, invalid_use_of_internal_member, invalid_use_of_visible_for_testing_member, deprecated_member_use_from_same_package

@@ -157,10 +157,6 @@ class RecintosLocalDatasourceImpl implements RecintosLocalDatasource {
   @override
   Future<void> guardarRecintos(List<RecintoModel> recintos) async {
     await _db.transaction(() async {
-      if (recintos.isNotEmpty) {
-         final parrId = recintos.first.parroquiaId;
-         await (_db.delete(_db.recintosLocal)..where((t) => t.parroquiaId.equals(parrId))).go();
-      }
       for (final r in recintos) {
         await _db.guardarRecintoLocal(RecintosLocalCompanion.insert(
           id: r.id,
@@ -169,6 +165,7 @@ class RecintosLocalDatasourceImpl implements RecintosLocalDatasource {
           direccion: r.direccion,
           latRef: Value(r.latRef),
           lonRef: Value(r.lonRef),
+          coordinadorId: Value(r.coordinadorId),
         ));
       }
     });

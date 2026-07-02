@@ -7,7 +7,7 @@ part of 'sync_providers.dart';
 // **************************************************************************
 
 String _$syncRemoteExecutorHash() =>
-    r'542829e08c4e924254925cc435aa3cf8c2d40b73';
+    r'2807eeb44bed1bea5263af5894fbb801cdf3c055';
 
 /// See also [syncRemoteExecutor].
 @ProviderFor(syncRemoteExecutor)

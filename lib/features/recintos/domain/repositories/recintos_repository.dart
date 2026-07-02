@@ -45,4 +45,11 @@ abstract class RecintosRepository {
     double? latRef,
     double? lonRef,
   });
+
+  /// Crea una nueva JRV en el servidor remoto de forma síncrona.
+  /// Operación online-only. Falla con NoConnectionFailure si no hay red.
+  Future<Either<Failure, Jrv>> crearJrv({
+    required String codigo,
+    required String recintoId,
+  });
 }

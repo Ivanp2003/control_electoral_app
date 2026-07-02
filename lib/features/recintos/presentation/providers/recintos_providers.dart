@@ -9,12 +9,14 @@ import '../../domain/entities/parroquia.dart';
 import '../../domain/entities/provincia.dart';
 import '../../domain/entities/recinto.dart';
 import '../../domain/repositories/recintos_repository.dart';
+import '../../domain/usecases/crear_jrv_usecase.dart';
 import '../../domain/usecases/crear_recinto_usecase.dart';
 import '../../domain/usecases/obtener_cantones_usecase.dart';
 import '../../domain/usecases/obtener_jrv_por_recinto_usecase.dart';
 import '../../domain/usecases/obtener_parroquias_usecase.dart';
 import '../../domain/usecases/obtener_provincias_usecase.dart';
 import '../../domain/usecases/obtener_recintos_usecase.dart';
+import '../../domain/entities/jrv.dart';
 
 part 'recintos_providers.g.dart';
 
@@ -144,6 +146,40 @@ class CrearRecintoNotifier extends _$CrearRecintoNotifier {
     state = result.fold(
       (failure) => AsyncValue.error(failure.message, StackTrace.current),
       (recinto) => AsyncValue.data(recinto),
+    );
+  }
+}
+
+@Riverpod(keepAlive: true)
+CrearJrvUseCase crearJrvUseCase(CrearJrvUseCaseRef ref) {
+  return CrearJrvUseCase(repository: ref.watch(recintosRepositoryProvider));
+}
+
+@riverpod
+class CrearJrvNotifier extends _$CrearJrvNotifier {
+  @override
+  AsyncValue<Jrv?> build() => const AsyncValue.data(null);
+
+  Future<Jrv?> crearJrv({
+    required AppRole rolUsuario,
+    required String codigo,
+    required String recintoId,
+  }) async {
+    state = const AsyncValue.loading();
+    final useCase = ref.read(crearJrvUseCaseProvider);
+    final result = await useCase(
+      rolUsuario: rolUsuario,
+      codigo: codigo,
+      recintoId: recintoId,
+    );
+    state = result.fold(
+      (failure) => AsyncValue.error(failure.message, StackTrace.current),
+      (jrv) => AsyncValue.data(jrv),
+    );
+    
+    return result.fold(
+      (l) => null,
+      (jrv) => jrv,
     );
   }
 }

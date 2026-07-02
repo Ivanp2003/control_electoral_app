@@ -25,7 +25,7 @@ final currentUserProvider = Provider<Usuario?>.internal(
 @Deprecated('Will be removed in 3.0. Use Ref instead')
 // ignore: unused_element
 typedef CurrentUserRef = ProviderRef<Usuario?>;
-String _$goRouterHash() => r'ed93b9f19aa77e21265cecf39d29a2fd34f92075';
+String _$goRouterHash() => r'2d59625a74a4809a5f8955a2c930ef46ab66270a';
 
 /// Proveedor centralizado de GoRouter para manejar las pantallas y guards de redirección.
 ///
@@ -138,7 +138,7 @@ final crearUsuarioUseCaseProvider = Provider<CrearUsuarioUseCase>.internal(
 @Deprecated('Will be removed in 3.0. Use Ref instead')
 // ignore: unused_element
 typedef CrearUsuarioUseCaseRef = ProviderRef<CrearUsuarioUseCase>;
-String _$authNotifierHash() => r'daa50dd7335f5b67f804e490beb37d0824be03bf';
+String _$authNotifierHash() => r'89aba964b324f720ee006e2f93a9e15ea372a351';
 
 /// auth_providers.dart
 ///
